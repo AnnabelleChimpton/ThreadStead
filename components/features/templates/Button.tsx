@@ -64,7 +64,7 @@ export default function Button(props: ButtonProps) {
   const style = applyCSSProps(cssProps);
 
   // Build className
-  const baseClasses = 'template-button';
+  const baseClasses = 'template-button ts-button';
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
   const finalClassName = customClassName
     ? `${filteredClasses} ${customClassName}`

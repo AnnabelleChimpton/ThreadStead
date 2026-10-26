@@ -96,7 +96,7 @@ export default function Slider(props: SliderProps) {
   };
 
   // Build className
-  const baseClasses = 'template-slider flex flex-col gap-1';
+  const baseClasses = 'template-slider ts-slider flex flex-col gap-1';
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
@@ -106,11 +106,11 @@ export default function Slider(props: SliderProps) {
     <div className={finalClassName}>
       {label && (
         <div className="flex justify-between items-center">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="ts-slider-label text-sm font-medium text-gray-700 dark:text-gray-300">
             {label}
           </label>
           {showValue && (
-            <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+            <span className="ts-slider-value text-sm text-gray-600 dark:text-gray-400 font-mono">
               {currentValue}
             </span>
           )}
@@ -131,9 +131,9 @@ export default function Slider(props: SliderProps) {
         // Arrow keys move it too; OnChange runs when the key comes up (template audit 06 #14e)
         onKeyDown={(e) => heldFrom.current === null && /^(?:Arrow|Page|Home$|End$)/.test(e.key) && takeHold()}
         onKeyUp={(e) => /^(?:Arrow|Page|Home$|End$)/.test(e.key) && handleRelease()}
-        className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700"
+        className="ts-slider-track w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700"
       />
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500">
+      <div className="ts-slider-scale flex justify-between text-xs text-gray-500 dark:text-gray-500">
         <span>{min}</span>
         <span>{max}</span>
       </div>

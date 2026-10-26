@@ -120,11 +120,11 @@ export default function Tabs(props: TabsProps) {
 
   return (
     <div className={wrapperClassName} style={style}>
-      <div className="profile-tabs thread-module p-0 overflow-hidden">
+      <div className="profile-tabs ts-tabs thread-module p-0 overflow-hidden">
         <div
           role="tablist"
           aria-label={label}
-          className="profile-tab-list flex md:flex-wrap border-b border-thread-sage/30"
+          className="profile-tab-list ts-tabs-list flex md:flex-wrap border-b border-thread-sage/30"
           // Arrow keys move between tabs, Home and End to the ends; only the
           // open tab is a Tab stop
           onKeyDown={(event) => {
@@ -149,7 +149,7 @@ export default function Tabs(props: TabsProps) {
                 id={`${baseId}-tab-${index}`}
                 tabIndex={isActive ? 0 : -1}
                 onClick={() => setActiveIndex(index)}
-                className={`profile-tab-button px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-r border-thread-sage/20 focus:outline-none transition-all min-w-fit ${
+                className={`profile-tab-button ts-tabs-tab px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-r border-thread-sage/20 focus:outline-none transition-all min-w-fit ${
                   isActive
                     ? 'active bg-thread-cream font-medium text-thread-pine'
                     : 'bg-thread-paper hover:bg-thread-cream/50 text-thread-sage hover:text-thread-pine'
@@ -165,7 +165,7 @@ export default function Tabs(props: TabsProps) {
           id={`${baseId}-panel-${activeIndex}`}
           aria-labelledby={`${baseId}-tab-${activeIndex}`}
           tabIndex={0}
-          className="profile-tab-panel p-4 sm:p-5 md:p-6"
+          className="profile-tab-panel ts-tabs-panel p-4 sm:p-5 md:p-6"
         >
           {tabs[activeIndex]?.content}
         </div>

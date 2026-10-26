@@ -86,8 +86,8 @@ export default function RadioGroup(props: RadioGroupProps) {
 
   // Build className
   const baseClasses = direction === 'horizontal'
-    ? 'template-radio-group flex flex-row gap-4'
-    : 'template-radio-group flex flex-col gap-2';
+    ? 'template-radio-group ts-radio-group flex flex-row gap-4'
+    : 'template-radio-group ts-radio-group flex flex-col gap-2';
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
@@ -179,9 +179,9 @@ export function Radio(props: RadioProps) {
         disabled={disabled}
         checked={isChecked}
         onChange={handleChange}
-        className="w-4 h-4 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 accent-blue-600"
+        className="ts-radio-dot w-4 h-4 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 accent-blue-600"
       />
-      <span className="text-sm select-none">
+      <span className="ts-radio-label text-sm select-none">
         {displayLabel}
       </span>
     </label>

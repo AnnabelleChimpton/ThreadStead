@@ -664,33 +664,32 @@ textarea:where(:not([data-site-styles="off"] *)):focus {
   box-shadow: 0 0 0 1px #2E4B3F;
 }
 
-/* The components in a page with site styles off keep these, and the link
-   look above (globals.css says why) */
+/* The components in a page with site styles off follow the page: links
+   in its text colour, underlined; fields see-through with an edge in its
+   colour, unless the page sets the tokens (--ts-card, --ts-edge,
+   --ts-accent; lib/templates/styling/component-parts.ts). They kept the
+   site's green links and white fields, unreadable on a dark page
+   (component styling plan, phase 1). */
 @scope ([data-site-styles="off"] ts-island) to ([data-ts-page]) {
   a {
-    color: #2E4B3F;
+    color: inherit;
     text-decoration: underline;
-    text-decoration-color: #A18463;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
   }
-  a:hover {
-    color: #E27D60;
-    text-decoration-color: #E27D60;
-  }
   input[type="text"], input[type="email"], input[type="password"], select, textarea {
-    color: #2F2F2F;
-    background-color: #FFFFFF;
-    border: 1px solid #A18463;
+    color: inherit;
+    background-color: var(--ts-card, transparent);
+    border: 1px solid var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
   }
   input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder, textarea::placeholder {
-    color: #A18463;
-    opacity: 0.7;
+    color: inherit;
+    opacity: 0.6;
   }
   input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: #2E4B3F;
-    box-shadow: 0 0 0 1px #2E4B3F;
+    border-color: var(--ts-accent, currentColor);
+    box-shadow: 0 0 0 1px var(--ts-accent, currentColor);
   }
 }
 

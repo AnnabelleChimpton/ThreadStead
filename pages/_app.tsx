@@ -5,6 +5,9 @@ import React, { useEffect, useMemo, useRef } from "react";
 import 'highlight.js/styles/github.css'; // Restore highlight.js for non-profile pages
 import "../styles/globals.css"; // Restore global CSS
 import "../styles/components.css"; // Component-specific styles (including bottom sheets)
+// After it: components.css comes again here, and its rules on component parts
+// (.profile-photo-frame) would beat the parts' token rules by coming later
+import "../styles/component-parts.css";
 import "../styles/neighborhood.css"; // Neighborhood street view styles
 import "../styles/neighborhood-card-view.css"; // Card view mobile experience styles
 import "../styles/pixel-homes-interactive.css"; // Interactive elements for pixel homes

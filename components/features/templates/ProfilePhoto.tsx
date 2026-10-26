@@ -62,7 +62,7 @@ export default function ProfilePhoto(props: ProfilePhotoProps) {
 
   return (
     <div className={wrapperClassName} style={wrapperStyle}>
-      <div className={`profile-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1 `}>
+      <div className={`profile-photo-frame ts-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1 `}>
         {owner?.avatarUrl ? (
           <img
             src={owner.avatarUrl}

@@ -1,0 +1,288 @@
+/*
+ * Written by scripts/write-component-parts-css.ts from
+ * lib/templates/styling/component-parts.ts: change that, then run the script.
+ *
+ * Your own HTML page with site styles off: our components follow the page.
+ * Their boxes are see-through with an edge in the page's colour, their text
+ * is the page's colour and font, unless the page sets a token (--ts-card,
+ * --ts-ink…). Unlayered and one class heavy: it beats the site's own classes
+ * and Tailwind's utilities, and any rule of the page's beats it.
+ */
+/* Button: the button */
+:where([data-template-root][data-site-styles="off"]) .ts-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 4px);
+  font-family: var(--ts-font);
+}
+/* RetroCard: the card */
+:where([data-template-root][data-site-styles="off"]) .ts-card {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 8px);
+  color: var(--ts-ink);
+  outline-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* RetroCard: its title */
+:where([data-template-root][data-site-styles="off"]) .ts-card-title {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* Tabs: the box around the tabs and the panel */
+:where([data-template-root][data-site-styles="off"]) .ts-tabs {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 8px);
+  color: var(--ts-ink);
+  outline-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* Tabs: the row of tabs */
+:where([data-template-root][data-site-styles="off"]) .ts-tabs-list {
+  border-bottom-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* Tabs: a tab */
+:where([data-template-root][data-site-styles="off"]) .ts-tabs-tab {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-right-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  font-family: var(--ts-font);
+}
+/* Tabs: the chosen tab */
+:where([data-template-root][data-site-styles="off"]) .ts-tabs-tab[aria-selected="true"] {
+  background: color-mix(in srgb, var(--ts-accent, currentColor) 15%, transparent);
+}
+/* Tabs: the chosen tab's content */
+:where([data-template-root][data-site-styles="off"]) .ts-tabs-panel {
+  color: var(--ts-ink);
+}
+/* Guestbook: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* Guestbook: small labels ("Your message", dates) */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-label {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+  opacity: 0.8;
+}
+/* Guestbook: notes and hints */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-muted {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* Guestbook: the line under the heading */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-divider {
+  border-top-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* Guestbook: the line's stitching */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-divider::before {
+  display: none;
+}
+/* Guestbook: the message box */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-field {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: none;
+  border-radius: var(--ts-radius, 8px);
+  color: var(--ts-ink);
+}
+/* Guestbook: its buttons */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 6px);
+  font-family: var(--ts-font);
+}
+/* Guestbook: one message */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-entry {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 8px);
+  color: var(--ts-ink);
+}
+/* Guestbook: a message's author */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-author {
+  color: var(--ts-ink);
+}
+/* Guestbook: a message's words */
+:where([data-template-root][data-site-styles="off"]) .ts-guestbook-message {
+  color: var(--ts-ink);
+}
+/* BlogPosts: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-posts-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* BlogPosts: one post */
+:where([data-template-root][data-site-styles="off"]) .ts-post {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: var(--ts-shadow, none);
+  border-radius: var(--ts-radius, 16px);
+  color: var(--ts-ink);
+}
+/* BlogPosts: a post under the pointer */
+:where([data-template-root][data-site-styles="off"]) .ts-post:hover {
+  box-shadow: var(--ts-shadow, none);
+}
+/* BlogPosts: a post's title */
+:where([data-template-root][data-site-styles="off"]) .ts-post-title {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+}
+/* BlogPosts: its links (the title is one) */
+:where([data-template-root][data-site-styles="off"]) .ts-post a {
+  color: var(--ts-ink);
+}
+/* BlogPosts: who wrote it */
+:where([data-template-root][data-site-styles="off"]) .ts-post-author {
+  color: var(--ts-ink);
+}
+/* BlogPosts: when */
+:where([data-template-root][data-site-styles="off"]) .ts-post-date {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* BlogPosts: what it says */
+:where([data-template-root][data-site-styles="off"]) .ts-post-content {
+  color: var(--ts-ink);
+}
+/* BlogPosts: its small buttons */
+:where([data-template-root][data-site-styles="off"]) .ts-post-actions button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+}
+/* BlogPosts: the line under a post */
+:where([data-template-root][data-site-styles="off"]) .ts-post-footer {
+  border-top-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* BlogPosts: the comments button under a post */
+:where([data-template-root][data-site-styles="off"]) .ts-post-footer button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+}
+/* ProfilePhoto: the frame around the photo */
+:where([data-template-root][data-site-styles="off"]) .ts-photo-frame {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+}
+/* DisplayName: the name */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-display-name {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* ProfileHeader: the small label under the name */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-status {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+  opacity: 0.8;
+}
+/* ProfileHeader: the bio */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-bio {
+  color: var(--ts-ink);
+}
+/* ProfileHeader: its buttons */
+:where([data-template-root][data-site-styles="off"]) .ts-profile-button {
+  background: var(--ts-card, transparent);
+  color: var(--ts-ink);
+  border-color: var(--ts-edge, currentColor);
+  box-shadow: var(--ts-shadow, none);
+  font-family: var(--ts-font);
+}
+/* Bio: its heading */
+:where([data-template-root][data-site-styles="off"]) .ts-bio-heading {
+  color: var(--ts-ink);
+  font-family: var(--ts-font-head);
+  text-shadow: none;
+}
+/* Bio: the bio */
+:where([data-template-root][data-site-styles="off"]) .ts-bio-text {
+  color: var(--ts-ink);
+}
+/* TInput: the text box */
+:where([data-template-root][data-site-styles="off"]) .ts-input {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: none;
+  border-radius: var(--ts-radius, 4px);
+  color: var(--ts-ink);
+}
+/* Select: the menu */
+:where([data-template-root][data-site-styles="off"]) .ts-select {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: none;
+  border-radius: var(--ts-radius, 6px);
+  color: var(--ts-ink);
+}
+/* Checkbox: the box */
+:where([data-template-root][data-site-styles="off"]) .ts-checkbox-box {
+  accent-color: var(--ts-accent, currentColor);
+}
+/* Checkbox: its words */
+:where([data-template-root][data-site-styles="off"]) .ts-checkbox-label {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+}
+/* RadioGroup: a choice's circle */
+:where([data-template-root][data-site-styles="off"]) .ts-radio-dot {
+  accent-color: var(--ts-accent, currentColor);
+}
+/* RadioGroup: a choice's words */
+:where([data-template-root][data-site-styles="off"]) .ts-radio-label {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+}
+/* Slider: its label */
+:where([data-template-root][data-site-styles="off"]) .ts-slider-label {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+}
+/* Slider: the number it's at */
+:where([data-template-root][data-site-styles="off"]) .ts-slider-value {
+  color: var(--ts-ink);
+  opacity: 0.8;
+  font-family: var(--ts-font);
+}
+/* Slider: the slider */
+:where([data-template-root][data-site-styles="off"]) .ts-slider-track {
+  accent-color: var(--ts-accent, currentColor);
+  background-color: color-mix(in srgb, var(--ts-edge, currentColor) 25%, transparent);
+}
+/* Slider: the lowest and highest numbers */
+:where([data-template-root][data-site-styles="off"]) .ts-slider-scale {
+  color: var(--ts-ink);
+  opacity: 0.8;
+}
+/* ColorPicker: its label */
+:where([data-template-root][data-site-styles="off"]) .ts-color-picker-label {
+  color: var(--ts-ink);
+  font-family: var(--ts-font);
+}
+/* ColorPicker: the colour box */
+:where([data-template-root][data-site-styles="off"]) .ts-color-picker-swatch {
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+}
+/* ColorPicker: the colour's code */
+:where([data-template-root][data-site-styles="off"]) .ts-color-picker-value {
+  color: var(--ts-ink);
+  opacity: 0.8;
+  font-family: var(--ts-font);
+}

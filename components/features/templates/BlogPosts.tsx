@@ -63,7 +63,7 @@ export default function BlogPosts(props: BlogPostsProps) {
 
   return (
     <div className={containerClassName} style={appliedStyles}>
-      {headingText && <h3 className="blog-posts-title thread-headline text-xl font-bold mb-3">{headingText}</h3>}
+      {headingText && <h3 className="blog-posts-title ts-posts-heading thread-headline text-xl font-bold mb-3">{headingText}</h3>}
       <div className="blog-posts-list space-y-3">
         {displayPosts.map((post) => (
           <PostItem

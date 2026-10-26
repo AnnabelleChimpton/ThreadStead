@@ -121,7 +121,7 @@ export default function TInput(props: TInputProps) {
   };
 
   // Build className
-  const baseClasses = 'template-input px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
+  const baseClasses = 'template-input ts-input px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500';
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;

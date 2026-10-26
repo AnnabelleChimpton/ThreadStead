@@ -67,7 +67,7 @@ export default function Checkbox(props: CheckboxProps) {
   };
 
   // Build className
-  const baseClasses = 'template-checkbox inline-flex items-center gap-2 cursor-pointer';
+  const baseClasses = 'template-checkbox ts-checkbox inline-flex items-center gap-2 cursor-pointer';
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
@@ -80,10 +80,10 @@ export default function Checkbox(props: CheckboxProps) {
         disabled={disabled}
         checked={currentValue}
         onChange={handleChange}
-        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+        className="ts-checkbox-box w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
       />
       {label && (
-        <span className="text-sm select-none">
+        <span className="ts-checkbox-label text-sm select-none">
           {label}
         </span>
       )}

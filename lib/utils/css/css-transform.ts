@@ -21,6 +21,7 @@
 import { normalizeCss } from './css-normalize'
 import { sanitizeCss } from '@/lib/utils/sanitization/css'
 import type { PageRootAttributes } from '@/lib/templates/compilation/document-head'
+import { tokenRulesFor, tokensSetIn } from '@/lib/templates/styling/component-parts'
 
 /**
  * A page's CSS as every transform here starts from: read the way a browser
@@ -852,8 +853,12 @@ export function transformAdvancedCss(
     (setsBodyMargin(rest) ? `\n${NO_PAGE_MARGIN}` : '') +
     (sticky ? `\n${STICKY_FRAME}` : '')
   if (!scoped && allImports.length === 0) return ''
+  // A token the page sets (--ts-card…) restyles every component's parts that
+  // read it, over the site's look; first, so the page's own rules still win
+  // (lib/templates/styling/component-parts.ts)
+  const tokens = tokenRulesFor(tokensSetIn(rest), `:root body ${INSIDE_PAGE}`)
   // Layer statements are the one thing allowed before @import
-  return [SITE_LAYER_ORDER, ...allImports, scoped].filter(Boolean).join('\n')
+  return [SITE_LAYER_ORDER, ...allImports, tokens, scoped].filter(Boolean).join('\n')
 }
 
 /**

@@ -386,7 +386,7 @@ export default function PostItem({
     <article
       ref={viewportRef}
       id={`post-${post.id.slice(-6)}`}
-      className={`post-item h-entry blog-post-card bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
+      className={`post-item h-entry blog-post-card ts-post bg-thread-paper border-y sm:border border-thread-sage/30 p-5 sm:p-8 mb-6 sm:rounded-cozy shadow-cozy-sm hover:shadow-cozy transition-all duration-300 ${post.isPinned ? 'border-yellow-500 border-2' : ''}`}
       data-post-id={post.id.slice(-6)}
     >
       {/* Author Info & Header */}
@@ -418,14 +418,14 @@ export default function PostItem({
                 <UserMention
                   username={authorUsername}
                   displayName={authorName}
-                  className="blog-post-author p-name font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
+                  className="blog-post-author ts-post-author p-name font-bold text-lg text-thread-pine hover:text-thread-sunset transition-colors truncate"
                 />
               </span>
             ) : (
-              <span className="blog-post-author p-author h-card font-bold text-lg text-thread-pine truncate">{authorName}</span>
+              <span className="blog-post-author ts-post-author p-author h-card font-bold text-lg text-thread-pine truncate">{authorName}</span>
             )}
             <span className="text-thread-sage text-sm" aria-hidden="true">•</span>
-            <LocalTime iso={post.createdAt} className="blog-post-date dt-published text-thread-sage text-sm font-medium" />
+            <LocalTime iso={post.createdAt} className="blog-post-date ts-post-date dt-published text-thread-sage text-sm font-medium" />
             {isOwner && <VisibilityBadge visibility={post.visibility} />}
             {post.isPinned && (
               <span className="inline-flex items-center gap-1 text-xs bg-thread-cream text-thread-pine px-2 py-1 border border-thread-sage/50 rounded ml-2">
@@ -446,7 +446,7 @@ export default function PostItem({
           </div>
         </div>
 
-        <div className="blog-post-actions flex items-center gap-2">
+        <div className="blog-post-actions ts-post-actions flex items-center gap-2">
           {/* Check if this is a fork notification - if so, don't show actions dropdown */}
           {(() => {
             const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
@@ -485,7 +485,7 @@ export default function PostItem({
         </div>
       </header>
 
-      <div ref={contentRef} className="blog-post-content sm:px-0">
+      <div ref={contentRef} className="blog-post-content ts-post-content sm:px-0">
         {/* Check for fork notification */}
         {(() => {
           const isForkNotification = (post.ringHubData?.metadata?.type === 'fork_notification') ||
@@ -587,12 +587,12 @@ export default function PostItem({
                             <span className="font-semibold">{authorName}</span>
                             <span>is {post.intent}</span>
                           </div>
-                          <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                          <h2 className="blog-post-title ts-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
                             {post.title}
                           </h2>
                         </div>
                       ) : (
-                        <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
+                        <h2 className="blog-post-title ts-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight group-hover:text-thread-sunset transition-colors font-display tracking-tight">
                           {post.title}
                         </h2>
                       )}
@@ -605,12 +605,12 @@ export default function PostItem({
                             <span className="font-semibold">{authorName}</span>
                             <span>is {post.intent}</span>
                           </div>
-                          <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                          <h2 className="blog-post-title ts-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
                             {post.title}
                           </h2>
                         </div>
                       ) : (
-                        <h2 className="blog-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
+                        <h2 className="blog-post-title ts-post-title p-name text-2xl sm:text-3xl font-bold text-black leading-tight font-display tracking-tight">
                           {post.title}
                         </h2>
                       )}
@@ -762,7 +762,7 @@ export default function PostItem({
         return !isForkNotification;
       })() && (
           <>
-            <footer className="blog-post-footer flex items-center justify-between pt-4 border-t-2 border-thread-sage/10">
+            <footer className="blog-post-footer ts-post-footer flex items-center justify-between pt-4 border-t-2 border-thread-sage/10">
               <div className="flex items-center gap-4">
                 <button
                   type="button"

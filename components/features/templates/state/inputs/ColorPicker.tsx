@@ -66,7 +66,7 @@ export default function ColorPicker(props: ColorPickerProps) {
   };
 
   // Build className
-  const baseClasses = 'template-color-picker flex items-center gap-3';
+  const baseClasses = 'template-color-picker ts-color-picker flex items-center gap-3';
   const finalClassName = customClassName
     ? `${baseClasses} ${customClassName}`
     : baseClasses;
@@ -75,7 +75,7 @@ export default function ColorPicker(props: ColorPickerProps) {
   return (
     <div className={finalClassName}>
       {label && (
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="ts-color-picker-label text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
       )}
@@ -85,9 +85,9 @@ export default function ColorPicker(props: ColorPickerProps) {
           disabled={disabled}
           value={currentValue}
           onChange={handleChange}
-          className="w-12 h-12 rounded cursor-pointer border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+          className="ts-color-picker-swatch w-12 h-12 rounded cursor-pointer border-2 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
         />
-        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">
+        <span className="ts-color-picker-value text-sm text-gray-600 dark:text-gray-400 font-mono">
           {currentValue}
         </span>
       </div>

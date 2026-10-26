@@ -228,16 +228,16 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
   }
 
   return (
-    <div className="guestbook-section">
+    <div className="guestbook-section ts-guestbook">
       {heading !== null && (
         <div className="mb-3">
-          <h3 className="thread-headline text-xl font-bold">{heading}</h3>
-          <span className="thread-label">visitor messages</span>
+          <h3 className="thread-headline ts-guestbook-heading text-xl font-bold">{heading}</h3>
+          <span className="thread-label ts-guestbook-label">visitor messages</span>
         </div>
       )}
-      {bio && <p className="text-sm text-thread-sage mb-4">Leave a cozy note for {username}!</p>}
+      {bio && <p className="text-sm text-thread-sage ts-guestbook-muted mb-4">Leave a cozy note for {username}!</p>}
 
-      <div className="thread-divider"></div>
+      <div className="thread-divider ts-guestbook-divider"></div>
       
       {residentHost ? (
         // Nobody is signed in on a resident's own address (it never sees a
@@ -246,7 +246,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
           <a
             href={actionUrl(residentHost.mainSiteUrl, "guestbook", username)}
             onClick={(event) => openAction(event, residentHost.mainSiteUrl, "guestbook", username)}
-            className="thread-button inline-block"
+            className="thread-button ts-guestbook-button inline-block"
           >
             Sign the guestbook<span className="sr-only"> (opens {config.site_name})</span>
           </a>
@@ -255,9 +255,9 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
       ) : (
       <form onSubmit={onSubmit} className="mb-6">
         <label className="block mb-3">
-          <span className="thread-label block mb-2">your message</span>
+          <span className="thread-label ts-guestbook-label block mb-2">your message</span>
           <textarea
-            className="w-full border border-thread-sage p-3 bg-thread-paper rounded-cozy focus:border-thread-pine focus:ring-1 focus:ring-thread-pine resize-none"
+            className="ts-guestbook-field w-full border border-thread-sage p-3 bg-thread-paper rounded-cozy focus:border-thread-pine focus:ring-1 focus:ring-thread-pine resize-none"
             rows={3}
             placeholder={config.guestbook_prompt}
             value={msg}
@@ -266,7 +266,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
           />
         </label>
         <button
-          className="thread-button disabled:opacity-50 disabled:cursor-not-allowed"
+          className="thread-button ts-guestbook-button disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={submitting || !msg.trim()}
         >
           {submitting ? "Posting…" : "Sign Guestbook"}
@@ -275,32 +275,32 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
       )}
 
       {loading ? (
-        <div className="text-thread-sage italic">Loading entries…</div>
+        <div className="text-thread-sage ts-guestbook-muted italic">Loading entries…</div>
       ) : error ? (
         <div className="text-thread-sunset bg-red-50 border border-red-200 p-3 rounded-cozy">
-          <span className="thread-label">error</span>
+          <span className="thread-label ts-guestbook-label">error</span>
           <p className="mt-1">{error}</p>
         </div>
       ) : entries.length === 0 ? (
-        <div className="text-thread-sage italic text-center py-6">
+        <div className="text-thread-sage ts-guestbook-muted italic text-center py-6">
           No entries yet — be the first to sign!
         </div>
       ) : (
         <div className="space-y-4">
-          <span className="thread-label">{entries.length} messages</span>
+          <span className="thread-label ts-guestbook-label">{entries.length} messages</span>
           <ul className="space-y-3">
             {entries.map((e) => (
               <li
                 key={e.id}
                 id={guestbookEntryAnchor(e.id)}
                 aria-current={e.id === targetId ? "true" : undefined}
-                className={`guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozy-sm${
+                className={`guestbook-entry ts-guestbook-entry bg-thread-paper border border-thread-sage/30 p-4 rounded-cozy shadow-cozy-sm${
                   e.id === targetId ? " guestbook-entry-target ring-2 ring-thread-sunset" : ""
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="thread-label mb-2">
+                    <div className="thread-label ts-guestbook-label mb-2">
                       <LocalTime iso={e.createdAt} />
                       {e.authorUsername ? (
                         <>
@@ -310,6 +310,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
                               ? `/home/${encodeURIComponent(e.authorUsername)}`
                               : `/resident/${encodeURIComponent(e.authorUsername)}`}
                             title={signerLink === "home" ? `Visit ${e.authorUsername}'s home` : `Visit ${e.authorUsername}'s page`}
+                            className="ts-guestbook-author"
                           >
                             {e.authorUsername}
                           </Link>
@@ -328,7 +329,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
                       </div>
                     )}
                     
-                    <div className="text-thread-charcoal leading-relaxed">
+                    <div className="ts-guestbook-message text-thread-charcoal leading-relaxed">
                       <CommentMarkupWithEmojis text={e.message} />
                     </div>
                   </div>
