@@ -41,8 +41,9 @@ export default apiHandler(
   async (req, res) => {
     if (req.method === "GET") {
       try {
-        // Get all site config values
+        // The settings this route knows (other keys in the table are other features')
         const configs = await db.siteConfig.findMany({
+          where: { key: { in: Object.keys(DEFAULT_CONFIG) } },
           select: {
             key: true,
             value: true,
