@@ -627,7 +627,10 @@ describe("what a pasted page is told (template audit 01 #5, 14 #8, 16 #3)", () =
   })
 
   test('a method pages lack is named; the ones they have pass', () => {
-    expect(warnings('<Var name="xs" type="array" initial="[]" /><Var name="s" type="computed" expression="$vars.xs.map(1)" />').join()).toMatch(/uses \.map\(\), which pages can't use/)
+    expect(warnings('<Var name="xs" type="array" initial="[]" /><Var name="s" type="computed" expression="$vars.xs.sort()" />').join()).toMatch(/uses \.sort\(\), which pages can't use/)
+    // .map() works with an arrow, and says so without one
+    expect(warnings('<Var name="xs" type="array" initial="[]" /><Var name="s" type="computed" expression="$vars.xs.map(1)" />').join()).toMatch(/uses \.map\(\) without an arrow/)
+    expect(warnings('<Var name="xs" type="array" initial="[]" /><Var name="s" type="computed" expression="$vars.xs.map(x => x * 2)" />')).toEqual([])
     expect(warnings('<Var name="t" type="string" initial="hi" /><Var name="s" type="computed" expression="$vars.t.trim().toUpperCase().padStart(4, \'.\')" />')).toEqual([])
   })
 

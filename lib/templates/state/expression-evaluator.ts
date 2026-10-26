@@ -9,11 +9,12 @@
  * - Math functions: round, floor, ceil, min, max, abs, sqrt, pow
  * - Type conversion: Number, String, Boolean
  * - Chance and time: random(), pick(list), $time (the visitor's clock)
+ * - List checks with an arrow: some, every, filter, map, find, findIndex, reduce
  *
  * SECURITY:
  * - AST parsing (NOT eval or new Function)
  * - Operator and function whitelisting
- * - Node count limits
+ * - Node count limits (as written) and a step budget (as run)
  * - Context isolation ($vars namespace only)
  * - No prototype pollution
  */
@@ -24,6 +25,53 @@ import jsepObject from '@jsep-plugin/object';
 
 // {name: $vars.n}: an object written in a calculation (evaluateObjectExpression)
 jsep.plugins.register(jsepObject);
+
+/**
+ * c => c == 'X' and (s, i) => s.y > i: an arrow, for the list methods that
+ * take one (LIST_CHECKS). Parsed as a binary => with the lowest precedence,
+ * then turned into its own node, the way @jsep-plugin/arrow does.
+ */
+const ARROW = 'ArrowFunctionExpression';
+jsep.plugins.register({
+  name: 'arrow',
+  init() {
+    jsep.addBinaryOp('=>', 0.1, true);
+    jsep.hooks.add('after-expression', (env: { node?: jsep.Expression }) => toArrows(env.node));
+  },
+});
+
+function toArrows(node: unknown): void {
+  if (!node || typeof node !== 'object') return;
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(toArrows);
+    else toArrows(value);
+  }
+  const binary = node as { type?: string; operator?: string; left?: jsep.Expression; right?: jsep.Expression; params?: jsep.Expression[]; body?: jsep.Expression };
+  if (binary.type === 'BinaryExpression' && binary.operator === '=>' && binary.left && binary.right) {
+    const { left, right } = binary;
+    delete binary.left;
+    delete binary.right;
+    delete binary.operator;
+    binary.type = ARROW;
+    binary.params = left.type === 'SequenceExpression' ? (left as jsep.SequenceExpression).expressions : [left];
+    binary.body = right;
+  }
+}
+
+/**
+ * List methods that take an arrow written right there, run by our own
+ * evaluator for each item: board.some(c => c == ''), stars.filter(s => s.y < 90).
+ * Only these, and only with an arrow, so no other function is ever called.
+ */
+const LIST_CHECKS = new Set(['some', 'every', 'filter', 'map', 'find', 'findIndex', 'reduce']);
+
+/** How many nodes an expression has as written */
+function sizeOf(node: unknown): number {
+  if (!node || typeof node !== 'object') return 0;
+  let size = (node as { type?: unknown }).type ? 1 : 0;
+  for (const value of Object.values(node)) size += Array.isArray(value) ? value.reduce((n: number, item) => n + sizeOf(item), 0) : sizeOf(value);
+  return size;
+}
 
 // P1.2: Expression caching - AST cache
 const astCache = new Map<string, jsep.Expression>();
@@ -37,8 +85,11 @@ const RESULT_CACHE_MAX_SIZE = 500;
 let cacheHits = 0;
 let cacheMisses = 0;
 
-// Maximum nodes in expression tree (prevent DoS)
+// Maximum nodes in an expression as written (prevent DoS)
 const MAX_NODES = 1000;
+// Most steps one evaluation may take: an arrow runs once for each item of
+// a list, so a short expression can do a lot of work
+const MAX_STEPS = 100_000;
 
 // Allowed binary operators
 const ALLOWED_BINARY_OPERATORS = new Set([
@@ -61,7 +112,8 @@ const ALLOWED_UNARY_OPERATORS = new Set([
 /**
  * The methods an expression may call, by the kind of value: only strings,
  * arrays and numbers, and nothing that takes a function or walks the
- * prototype chain (constructor, __proto__). Expressions also run on the
+ * prototype chain (constructor, __proto__). The list methods that take an
+ * arrow are LIST_CHECKS, run by runListCheck. Expressions also run on the
  * server, so anything reachable here runs there too.
  */
 const SAFE_METHODS: Record<string, ReadonlySet<string>> = {
@@ -220,6 +272,7 @@ export function evaluateExpression(
         const firstKey = astCache.keys().next().value;
         if (firstKey) astCache.delete(firstKey);
       }
+      if (sizeOf(ast) > MAX_NODES) throw new Error('Expression too complex (exceeds node limit)');
       astCache.set(expression, ast);
     } catch (error) {
       throw new Error(`Failed to parse expression: ${error}`);
@@ -250,8 +303,8 @@ export function evaluateExpression(
   function evaluateNode(node: jsep.Expression, ctx: EvaluationContext): any {
     // Check node limit
     nodeCount++;
-    if (nodeCount > MAX_NODES) {
-      throw new Error('Expression too complex (exceeds node limit)');
+    if (nodeCount > MAX_STEPS) {
+      throw new Error('Expression does too much work (over 100,000 steps): a list check on a very long list?');
     }
 
     switch (node.type) {
@@ -281,6 +334,9 @@ export function evaluateExpression(
 
       case 'ObjectExpression':
         return evaluateObjectExpression(node, ctx);
+
+      case ARROW:
+        throw new Error('An arrow (item => …) only works inside some, every, filter, map, find, findIndex or reduce');
 
       default:
         throw new Error(`Unsupported expression type: ${node.type}`);
@@ -432,6 +488,7 @@ export function evaluateExpression(
       const isMath = memberExpr.object.type === 'Identifier' && (memberExpr.object as jsep.Identifier).name === 'Math'
         && !Object.prototype.hasOwnProperty.call(ctx, 'Math');
       const kind = Array.isArray(objectValue) ? 'array' : typeof objectValue;
+      if (kind === 'array' && LIST_CHECKS.has(propertyName)) return runListCheck(objectValue, propertyName, args, ctx);
       const method = isMath
         ? objectValue[propertyName] // the Math proxy: allowed functions, or it throws
         : SAFE_METHODS[kind]?.has(propertyName) ? objectValue[propertyName] : undefined;
@@ -494,6 +551,33 @@ export function evaluateExpression(
     // Unsupported call type
     console.error('[Expression] Unsupported function call type');
     return undefined;
+  }
+
+  /**
+   * list.some(c => c == 'X'): the arrow runs here, once for each item, with
+   * its names (item, and index if it names a second) on top of what the
+   * expression already sees. It counts toward MAX_STEPS like the rest.
+   */
+  function runListCheck(list: unknown[], name: string, args: jsep.Expression[], ctx: EvaluationContext): any {
+    const arrow = args[0] as { type?: string; params?: jsep.Expression[]; body?: jsep.Expression } | undefined;
+    if (arrow?.type !== ARROW || !arrow.body) throw new Error(`${name}() needs an arrow, like ${name}(item => item > 1)`);
+    const names = (arrow.params ?? []).map((param) => {
+      const paramName = param.type === 'Identifier' ? (param as jsep.Identifier).name : '';
+      if (!paramName || paramName === '__proto__' || paramName === 'constructor' || paramName === 'prototype') {
+        throw new Error("An arrow's names have to be plain names, like (item, i) => …");
+      }
+      return paramName;
+    });
+    const body = arrow.body;
+    const run = (...values: unknown[]) => {
+      const inner: EvaluationContext = { ...ctx };
+      names.forEach((paramName, k) => {
+        inner[paramName] = values[k];
+      });
+      return evaluateNode(body, inner);
+    };
+    if (name === 'reduce') return args.length > 1 ? list.reduce(run, evaluateNode(args[1], ctx)) : list.reduce(run);
+    return (list as unknown as Record<string, (fn: typeof run) => unknown>)[name](run);
   }
 
   /**
@@ -610,37 +694,48 @@ export function extractVariableNames(expression: string): string[] {
 
     const variables = new Set<string>();
 
-    function traverse(node: jsep.Expression) {
+    // `bound`: an arrow's own names (c in board.some(c => …)), not variables
+    function traverse(node: jsep.Expression, bound: ReadonlySet<string> = new Set()) {
+      const walk = (child: jsep.Expression | null | undefined) => child && traverse(child, bound);
       if (node.type === 'Identifier') {
         const name = (node as jsep.Identifier).name;
         // Exclude global functions
-        if (!ALLOWED_FUNCTIONS.has(name) && name !== 'Math') {
+        if (!ALLOWED_FUNCTIONS.has(name) && name !== 'Math' && !bound.has(name)) {
           variables.add(name);
         }
       } else if (node.type === 'BinaryExpression') {
         const binNode = node as jsep.BinaryExpression;
-        traverse(binNode.left);
-        traverse(binNode.right);
+        walk(binNode.left);
+        walk(binNode.right);
       } else if (node.type === 'UnaryExpression') {
         const unNode = node as jsep.UnaryExpression;
-        traverse(unNode.argument);
+        walk(unNode.argument);
       } else if (node.type === 'ConditionalExpression') {
         const condNode = node as jsep.ConditionalExpression;
-        traverse(condNode.test);
-        traverse(condNode.consequent);
-        traverse(condNode.alternate);
+        walk(condNode.test);
+        walk(condNode.consequent);
+        walk(condNode.alternate);
       } else if (node.type === 'CallExpression') {
         const callNode = node as jsep.CallExpression;
-        callNode.arguments.forEach(traverse);
+        // board in board.indexOf('') or board.some(…) is read too
+        if (callNode.callee.type === 'MemberExpression') walk(callNode.callee);
+        callNode.arguments.forEach(walk);
       } else if (node.type === 'MemberExpression') {
         const memberNode = node as jsep.MemberExpression;
-        traverse(memberNode.object);
+        walk(memberNode.object);
         if (memberNode.computed) {
-          traverse(memberNode.property);
+          walk(memberNode.property);
         }
       } else if (node.type === 'ArrayExpression') {
         const arrayNode = node as jsep.ArrayExpression;
-        arrayNode.elements.forEach(element => element && traverse(element));
+        arrayNode.elements.forEach(walk);
+      } else if (node.type === 'ObjectExpression') {
+        for (const property of (node.properties as { value?: jsep.Expression }[]) ?? []) walk(property.value);
+      } else if (node.type === ARROW) {
+        const arrow = node as unknown as { params?: jsep.Expression[]; body: jsep.Expression };
+        const names = new Set(bound);
+        for (const param of arrow.params ?? []) if (param.type === 'Identifier') names.add((param as jsep.Identifier).name);
+        traverse(arrow.body, names);
       }
     }
 
@@ -697,10 +792,23 @@ export function expressionProblem(expression: string): string | undefined {
     return "can't be read as a calculation";
   }
   let problem: string | undefined;
+  // Arrows where they work: the first thing given to a list check
+  const placed = new Set<unknown>();
   const visit = (node: unknown): void => {
     if (problem || !node || typeof node !== 'object') return;
-    const n = node as { type?: string; callee?: { type: string; name?: string; object?: { type: string; name?: string }; property?: { name?: string } } };
-    if (n.type === 'CallExpression' && n.callee) {
+    const n = node as { type?: string; arguments?: { type: string }[]; callee?: { type: string; name?: string; object?: { type: string; name?: string }; property?: { name?: string } } };
+    if (n.type === ARROW && !placed.has(node)) {
+      problem = 'has an arrow (item => …) on its own: it only works inside .some(), .every(), .filter(), .map(), .find(), .findIndex() or .reduce()';
+      return;
+    }
+    if (n.type === 'CallExpression' && n.callee?.type === 'MemberExpression' && LIST_CHECKS.has(n.callee.property?.name ?? '')) {
+      const name = n.callee.property!.name;
+      if (n.arguments?.[0]?.type !== ARROW) {
+        problem = `uses .${name}() without an arrow: write it like .${name}(item => item > 1)`;
+        return;
+      }
+      placed.add(n.arguments[0]);
+    } else if (n.type === 'CallExpression' && n.callee) {
       const { callee } = n;
       if (callee.type === 'Identifier' && !ALLOWED_FUNCTIONS.has(callee.name ?? '')) {
         problem = `uses ${callee.name}(), which pages can't use`;

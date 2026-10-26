@@ -492,3 +492,54 @@ describe('objects written in a calculation', () => {
     expect(() => evaluateExpression('{[$vars.k]: 1}', { k: 'a' })).toThrow(/name: value pairs/);
   });
 });
+
+describe('list checks with an arrow: some, every, filter, map, find, findIndex, reduce', () => {
+  const ctx = {
+    board: ['X', 'X', 'X', 'O', 'O', '', '', '', ''],
+    lines: [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]],
+    stars: [{ x: 1, y: 95 }, { x: 50, y: 20 }],
+    px: 50,
+  };
+
+  it('checks a whole list, nested and with a position', () => {
+    expect(evaluateExpression("lines.some(l => board[l[0]] != '' && l.every(i => board[i] == board[l[0]]))", ctx)).toBe(true);
+    expect(evaluateExpression("board.filter(c => c == '').length", ctx)).toBe(4);
+    expect(evaluateExpression("board.findIndex(c => c == '')", ctx)).toBe(5);
+    expect(evaluateExpression('stars.map((s, i) => s.y + i)', ctx)).toEqual([95, 21]);
+    expect(evaluateExpression('stars.find(s => Math.abs(s.x - $vars.px) < 10)', ctx)).toEqual({ x: 50, y: 20 });
+    expect(evaluateExpression('stars.reduce((total, s) => total + s.x, 0)', ctx)).toBe(51);
+    expect(evaluateExpression('stars.map(s => ({x: s.x, y: s.y + 10}))', ctx)).toEqual([{ x: 1, y: 105 }, { x: 50, y: 30 }]);
+  });
+
+  it('reads a ternary as the arrow body, and leaves the list as it was', () => {
+    expect(evaluateExpression("board.map(c => c == '' ? '.' : c).join('')", ctx)).toBe('XXXOO....');
+    expect(ctx.board).toEqual(['X', 'X', 'X', 'O', 'O', '', '', '', '']);
+  });
+
+  it('runs arrows only in those methods, with plain names', () => {
+    expect(() => evaluateExpression('x => x', ctx)).toThrow(/only works inside some, every/);
+    expect(() => evaluateExpression('board.some(board)', ctx)).toThrow(/needs an arrow/);
+    expect(() => evaluateExpression('board.map(__proto__ => 1)', ctx)).toThrow(/plain names/);
+    expect(() => evaluateExpression('board.map(constructor => 1)', ctx)).toThrow(/plain names/);
+    expect(evaluateExpression('board.sort()', ctx)).toBeUndefined();
+  });
+
+  it('stops a check that does too much work', () => {
+    const list = Array.from({ length: 50_000 }, (_, i) => i);
+    expect(() => evaluateExpression('list.map(n => n * 2 + 1).length', { list })).toThrow(/too much work/);
+    expect(evaluateExpression('list.slice(0, 1000).filter(n => n % 2 == 0).length', { list })).toBe(500);
+  });
+
+  it('the editor says when an arrow is in the wrong place, and not otherwise', () => {
+    expect(expressionProblem("lines.some(l => l.every(i => board[i] == turn))")).toBeUndefined();
+    expect(expressionProblem('x => x')).toMatch(/on its own/);
+    expect(expressionProblem('board.some(1)')).toMatch(/without an arrow/);
+    expect(expressionProblem('board.sort((a, b) => a - b)')).toMatch(/\.sort\(\), which pages can't use/);
+  });
+
+  it("depends on the list and what the arrow reads, not the arrow's own names", () => {
+    expect(extractVariableNames('lines.some(l => l.every(i => board[i] == turn))').sort()).toEqual(['board', 'lines', 'turn']);
+    expect(extractVariableNames("board.indexOf('') == -1")).toEqual(['board']);
+    expect(extractVariableNames('stars.map(s => ({x: s.x + dx}))').sort()).toEqual(['dx', 'stars']);
+  });
+});
