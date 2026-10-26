@@ -1,46 +1,26 @@
+import { z } from "zod";
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
 import { ReportType, ReportReason } from "@prisma/client";
 
+/** What ReportButton sends; the form caps the custom reason at 100 and the details at 500 */
+const reportSchema = z.object({
+  reportType: z.enum(ReportType),
+  targetId: z.string().min(1).max(200),
+  reason: z.enum(ReportReason),
+  customReason: z.string().max(100).optional(),
+  description: z.string().max(500).optional(),
+  reportedUserId: z.string().max(200).optional(),
+});
+
 export default apiHandler(
-  { methods: ["POST"], auth: "user" },
-  async (req, res, { user }) => {
-    const {
-      reportType,
-      targetId,
-      reason,
-      customReason,
-      description,
-      reportedUserId
-    } = req.body as {
-      reportType: ReportType;
-      targetId: string;
-      reason: ReportReason;
-      customReason?: string;
-      description?: string;
-      reportedUserId?: string;
-    };
-
-    // Validate required fields
-    if (!reportType || !targetId || !reason) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    // Validate reportType
-    const validReportTypes: ReportType[] = ["user", "post", "comment", "threadring", "guestbook_entry", "photo_comment", "site"];
-    if (!validReportTypes.includes(reportType)) {
-      return res.status(400).json({ error: "Invalid report type" });
-    }
-
-    // Validate reason
-    const validReasons: ReportReason[] = ["spam", "harassment", "hate_speech", "violence", "misinformation", "sexual_content", "copyright", "other"];
-    if (!validReasons.includes(reason)) {
-      return res.status(400).json({ error: "Invalid reason" });
-    }
+  { methods: ["POST"], auth: "user", rateLimit: "default", schema: reportSchema },
+  async (req, res, { user, body }) => {
+    const { reportType, targetId, reason, customReason, description, reportedUserId } = body;
 
     // If reason is "other", require customReason
     if (reason === "other" && !customReason?.trim()) {
-      return res.status(400).json({ error: "Custom reason is required when selecting 'other'" });
+      return res.status(400).json({ error: "Say what's wrong in a few words." });
     }
 
     try {
@@ -150,7 +130,7 @@ export default apiHandler(
       });
 
       res.status(201).json({
-        message: "Report submitted successfully",
+        message: "Thanks. I'll take a look.",
         report: {
           id: report.id,
           reportType: report.reportType,

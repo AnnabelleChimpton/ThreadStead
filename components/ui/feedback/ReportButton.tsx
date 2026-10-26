@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 // Removed import to avoid build errors when client is out of sync
 // import { ReportType, ReportReason } from "@prisma/client";
 
@@ -76,7 +77,8 @@ export default function ReportButton({
     setSubmitting(true);
 
     try {
-      const response = await fetch("/api/reports/create", {
+      // csrfFetch: the route checks the CSRF token, so a plain fetch was refused every time
+      const response = await csrfFetch("/api/reports/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -100,11 +102,11 @@ export default function ReportButton({
         }, 2000);
       } else {
         const errorData = await response.json();
-        showError(errorData.error || "Failed to submit report");
+        showError(errorData.error || "That report didn't go through. Try again in a moment.");
       }
     } catch (error) {
       console.error("Error submitting report:", error);
-      showError("Failed to submit report");
+      showError("That report didn't go through. Try again in a moment.");
     } finally {
       setSubmitting(false);
     }
