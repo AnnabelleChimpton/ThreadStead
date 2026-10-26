@@ -26,6 +26,12 @@ export const BEGINNER_SECTIONS: Array<{ id: string; title: string; blurb: string
     blurb: 'Buttons that count, switch and remember. The lessons start here.',
     components: ['Var', 'ShowVar', 'Button', 'OnClick', 'Set', 'Increment', 'Toggle', 'Cycle', 'Reset', 'If'],
   },
+  {
+    id: 'lists-keys-timers',
+    title: 'Lists, keys and timers',
+    blurb: 'Show every item in a list, react to keys and swipes, and do things on a timer. Reading lists, slideshows and games all use them.',
+    components: ['ForEach', 'OnKeyPress', 'OnKeyUp', 'OnSwipe', 'OnInterval'],
+  },
 ];
 
 export const BEGINNER_COMPONENTS = new Set(BEGINNER_SECTIONS.flatMap((s) => s.components));

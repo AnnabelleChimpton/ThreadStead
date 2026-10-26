@@ -179,7 +179,7 @@ export function registerEventComponents(registry: ComponentRegistry) {
     description: 'Runs the actions inside when someone swipes across the element it sits in: a finger on a phone or tablet, or dragging with the mouse held down. Put one inside the thing to swipe, or point it at something with target="…". Swiping across it doesn\'t scroll the page that way (left and right swipes still let the page scroll up and down), and a swipe doesn\'t count as a click too. Keyboards can\'t swipe, so give a game OnKeyPress arrows as well.',
     example: '<Var name="x" type="number" initial="0" />\n<div class="pad">\n  <OnSwipe direction="left"><Decrement var="x" /></OnSwipe>\n  <OnSwipe direction="right"><Increment var="x" /></OnSwipe>\n  Swipe me left or right: <ShowVar name="x" />\n</div>\n<OnKeyPress keyName="ArrowLeft"><Decrement var="x" /></OnKeyPress>\n<OnKeyPress keyName="ArrowRight"><Increment var="x" /></OnKeyPress>',
     props: {
-      direction: { type: 'string', values: ['left', 'right', 'up', 'down'], description: 'Which way: left, right, up or down. Without it, a swipe any way counts. Use one OnSwipe for each way.' },
+      direction: { type: 'enum', values: ['left', 'right', 'up', 'down'], description: 'Which way: left, right, up or down. Without it, a swipe any way counts. Use one OnSwipe for each way.' },
       distance: { type: 'number', default: 30, min: 1, description: 'How far the swipe has to go, in pixels, before it counts. 30 by default.' },
       target: { type: 'string', description: 'A selector for what to swipe across instead of the element it sits in, like #board or .card. Things the page shows later count too.' }
     },

@@ -52,9 +52,37 @@ afterEach(() => {
 test('it starts with the components to start with, in their own sections', () => {
   renderPage()
   const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
-  expect(headings).toEqual(['Your stuff', 'Bits of fun', 'Things people can click'])
-  const entries = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+  expect(headings).toEqual(['Your stuff', 'Bits of fun', 'Things people can click', 'Lists, keys and timers', 'Calculations'])
+  const entries = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent).filter((t) => t!.startsWith('<'))
   expect(entries).toEqual(['<Guestbook>', '<FollowButton>', '<Embed>'])
+})
+
+test('search lists the best match first, in one list, and says how many', () => {
+  renderPage()
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search components' }), { target: { value: 'follow' } })
+  const entries = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+  expect(entries[0]).toBe('<FollowButton>')
+  expect(screen.getByText(/match(es)?, best first/)).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Calculations' })).toBeNull()
+})
+
+test('a few settings show straight away; the CSS ones wait behind More settings', () => {
+  const withSettings: ComponentDoc = {
+    ...doc('Guestbook', 'connected', '<Guestbook />'),
+    props: [
+      { name: 'heading', type: 'string', description: 'The title over it.' },
+      { name: 'textColor', type: 'string', css: true },
+    ] as ComponentDoc['props'],
+  }
+  render(
+    <ToastProvider>
+      <ComponentsPage siteConfig={{ site_name: 'ThreadStead' } as never} components={[withSettings]} tutorials={{}} />
+    </ToastProvider>
+  )
+  const entry = document.getElementById('guestbook')!
+  expect(within(entry).getByText('The title over it.')).toBeVisible()
+  expect(within(entry).getByText('More settings')).toBeInTheDocument()
+  expect(within(entry).getByText(/Also takes CSS values as attributes: textColor/)).toBeInTheDocument()
 })
 
 test('Show all lists every component, connected ones first', () => {
