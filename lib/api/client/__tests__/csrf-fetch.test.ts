@@ -1,8 +1,7 @@
 /**
  * The browser half of the double-submit check reads the CSRF cookie by its
- * exact name: `__Host-csrf_token` in production, `csrf_token` before the
- * rename and in dev. The server (lib/server/http/csrf.ts) reads the same
- * names in the same order.
+ * exact name: `__Host-csrf_token` in production, `csrf_token` in dev. The
+ * server (lib/server/http/csrf.ts) reads the same name.
  */
 import { getCsrfToken } from '../csrf-fetch';
 
@@ -27,9 +26,17 @@ test('reads csrf_token', () => {
   expect(getCsrfToken()).toBe(TOKEN);
 });
 
-test('prefers __Host-csrf_token over csrf_token', () => {
-  setCookies(`csrf_token=${'b'.repeat(64)}`, `__Host-csrf_token=${TOKEN}`);
-  expect(getCsrfToken()).toBe(TOKEN);
+test('in production only __Host-csrf_token is read, never a planted csrf_token', () => {
+  const env = process.env.NODE_ENV;
+  (process.env as Record<string, string>).NODE_ENV = 'production';
+  try {
+    setCookies(`csrf_token=${'b'.repeat(64)}`, `__Host-csrf_token=${TOKEN}`);
+    expect(getCsrfToken()).toBe(TOKEN);
+    setCookies(`csrf_token=${TOKEN}`);
+    expect(getCsrfToken()).toBeNull();
+  } finally {
+    (process.env as Record<string, string>).NODE_ENV = env!;
+  }
 });
 
 test('never reads a cookie whose name only ends with csrf_token', () => {

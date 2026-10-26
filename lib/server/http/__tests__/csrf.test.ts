@@ -137,8 +137,9 @@ describe('cookie names in production', () => {
     expect(getCsrfToken(req({ cookie: `__Host-csrf_token=${TOKEN}` }))).toBe(TOKEN);
   });
 
-  it('still takes the old csrf_token when there is no __Host- one (sessions from before the rename)', () => {
-    expect(validateCsrfToken(req({ cookie: `csrf_token=${TOKEN}`, header: TOKEN }))).toBe(true);
+  it('never takes the old csrf_token name (a subdomain could plant one)', () => {
+    expect(validateCsrfToken(req({ cookie: `csrf_token=${TOKEN}`, header: TOKEN }))).toBe(false);
+    expect(getCsrfToken(req({ cookie: `csrf_token=${TOKEN}` }))).toBeNull();
   });
 
   it('prefers __Host-csrf_token over a planted csrf_token', () => {

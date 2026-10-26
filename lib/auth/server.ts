@@ -82,14 +82,13 @@ export async function createSession(res: NextApiResponse, userId: string): Promi
 }
 
 /**
- * The `[userId, secret]` halves of the session cookie, or null. In production
- * a session from before the rename only has the old `retro_session` name, so
- * that's read when there's no `__Host-` one. Drop the fallback a week after
- * the rename ships (sessions last 7 days and aren't extended).
+ * The `[userId, secret]` halves of the session cookie, or null. Only the
+ * current name: in production the old `retro_session` isn't read any more
+ * (a subdomain could plant one for the whole domain), so a session from
+ * before the rename signs in again.
  */
 function readSessionCookie(req: Pick<NextApiRequest, "headers">): [string, string] | null {
-  let value = readCookie(req, sessionCookieName());
-  if (!value && usesHostPrefixedCookies()) value = readCookie(req, LEGACY_SESSION_COOKIE);
+  const value = readCookie(req, sessionCookieName());
   if (!value) return null;
   const [userId, secret] = value.split(".");
   return userId && secret ? [userId, secret] : null;

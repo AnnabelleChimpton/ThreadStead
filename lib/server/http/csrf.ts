@@ -79,16 +79,11 @@ export function createCsrfCookie(token: string, maxAge: number = 604800): string
 }
 
 /**
- * Extract CSRF token from cookie. In production the old `csrf_token` name is
- * still read when there's no `__Host-` one: sessions from before the rename
- * carry only that. Drop the fallback a week after the rename ships (sessions
- * last 7 days and aren't extended).
+ * Extract CSRF token from cookie: only the current name, so in production a
+ * `csrf_token` planted by a subdomain is never read.
  */
 function getCsrfTokenFromCookie(req: Pick<NextApiRequest, "headers">): string | null {
-  const cookie = req.headers.cookie || "";
-  const current = cookieValue(cookie, csrfCookieName());
-  if (current || !usesHostPrefixedCookies()) return current;
-  return cookieValue(cookie, LEGACY_CSRF_COOKIE);
+  return cookieValue(req.headers.cookie || "", csrfCookieName());
 }
 
 /**

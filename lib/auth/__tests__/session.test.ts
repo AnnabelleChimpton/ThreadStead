@@ -205,10 +205,10 @@ describe('getSessionUser', () => {
       expect(secretLookedUp()).toEqual(['new']);
     });
 
-    test('still reads a session from before the rename (old name only)', async () => {
+    test('never reads the old retro_session name (a subdomain could plant one)', async () => {
       findUnique.mockResolvedValue({ userId: 'u1', expiresAt: future(), user: { id: 'u1' } });
-      expect(await getSessionUser(req('retro_session=u1.old'))).toMatchObject({ id: 'u1' });
-      expect(secretLookedUp()).toEqual(['old']);
+      expect(await getSessionUser(req('retro_session=u1.old'))).toBeNull();
+      expect(findUnique).not.toHaveBeenCalled();
     });
 
     test('with both, the __Host- one wins (a subdomain could only plant the old name)', async () => {
