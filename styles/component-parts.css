@@ -198,7 +198,7 @@
   font-family: var(--ts-font);
   opacity: 0.8;
 }
-/* ProfileHeader: the bio */
+/* ProfileHeader: the bio (in Bio too) */
 :where([data-template-root][data-site-styles="off"]) .ts-profile-bio {
   color: var(--ts-ink);
 }
@@ -535,7 +535,7 @@
   color: var(--ts-ink);
 }
 /* Embed: Play */
-:where([data-template-root][data-site-styles="off"]) .ts-embed-placeholder .ts-embed-button {
+:where([data-template-root][data-site-styles="off"]) .ts-embed-button.btn {
   background: var(--ts-card, transparent);
   color: var(--ts-ink);
   border-color: var(--ts-edge, currentColor);
@@ -547,7 +547,7 @@
 :where([data-template-root][data-site-styles="off"]) .ts-polaroid-caption {
   color: var(--ts-note-ink, var(--color-gray-700));
 }
-/* ProfileMusic: the player */
+/* ProfileMusic: its box */
 :where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music {
   background: var(--ts-card, transparent);
   border-color: var(--ts-edge, currentColor);
@@ -585,6 +585,14 @@
 /* ProfileMusic: how far it's played */
 :where([data-template-root][data-site-styles="off"]) .ts-profile-music .ts-music-progress {
   background-color: var(--ts-accent, currentColor);
+}
+/* DynamicImage: the box when there's no picture */
+:where([data-template-root][data-site-styles="off"]) .ts-dynamic-image-empty {
+  background: var(--ts-card, transparent);
+  border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
+  box-shadow: none;
+  border-radius: var(--ts-radius, 4px);
+  color: var(--ts-ink);
 }
 /* Notes only you see: the note */
 :where([data-template-root][data-site-styles="off"]) .ts-owner-note {

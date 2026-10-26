@@ -35,6 +35,7 @@ import { NO_PROBLEMS, firstProblemLine, hasStrippedNeedingAttention, problemMark
 import { lintGutter, setDiagnostics } from '@codemirror/lint';
 import { foldOptionLines, optionFolding } from '@/lib/templates/editor/option-fold';
 import { colorSwatches } from '@/lib/templates/editor/color-swatches';
+import { restylingCompletions } from '@/lib/templates/editor/part-completions';
 import { optionKey, scanThemeOptions, writeThemeOptions, type ThemeOption } from '@/lib/templates/compilation/theme-options';
 import ThemeOptionPicker from '@/components/features/profile/ThemeOptionPicker';
 import { bringsOwnStylesheet, movePastedStyles, pastedCSS, pastedCSSHistory, WHOLE_PAGE } from '@/lib/templates/editor/pasted-styles';
@@ -927,8 +928,15 @@ export default function EnhancedTemplateEditor({
     [componentSchemas, codeSettings.wrap.html]
   );
   const cssExtensions = React.useMemo(
-    () => [cssLang(), lintGutter(), colorSwatches(), ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : [])],
-    [codeSettings.wrap.css]
+    () => [
+      cssLang(),
+      lintGutter(),
+      colorSwatches(),
+      // Tokens and parts restyle the components on your own HTML page; the standard layout has neither
+      ...(useStandardLayout ? [] : [restylingCompletions]),
+      ...(codeSettings.wrap.css ? [EditorView.lineWrapping] : []),
+    ],
+    [codeSettings.wrap.css, useStandardLayout]
   );
 
   // Each problem with a line, marked on it in the gutter too

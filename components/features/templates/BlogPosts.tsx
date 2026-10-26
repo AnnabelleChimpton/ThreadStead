@@ -57,7 +57,7 @@ export default function BlogPosts(props: BlogPostsProps) {
     );
   }
 
-  const baseContainerClasses = "blog-posts profile-tab-content space-y-4";
+  const baseContainerClasses = "blog-posts ts-posts profile-tab-content space-y-4";
   const filteredContainerClasses = removeTailwindConflicts(baseContainerClasses, cssProps);
   const containerClassName = customClassName ? `${filteredContainerClasses} ${customClassName}` : filteredContainerClasses;
 

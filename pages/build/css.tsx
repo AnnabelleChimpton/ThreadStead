@@ -10,12 +10,19 @@ import ThemeSwatch from '@/components/features/profile/ThemeSwatch';
 import { getSiteConfig, SiteConfig } from '@/lib/config/site/dynamic';
 import { THEMES } from '@/lib/templates/appearance';
 import { CSS_CLASSES } from '@/lib/templates-docs/css-classes';
+import { TOKENS } from '@/lib/templates/styling/component-parts';
 import PageMeta from '@/components/ui/layout/PageMeta';
 
 interface CssGuideProps {
   siteConfig: SiteConfig;
   username: string | null;
 }
+
+const TOKENS_EXAMPLE = `:root {
+  --ts-card: #2a2545;
+  --ts-edge: #a99fd6;
+  --ts-ink: #f3eefc;
+}`;
 
 const TRY = [
   {
@@ -98,6 +105,36 @@ export default function CssGuide({ siteConfig, username }: CssGuideProps) {
             <CodeBox key={t.label} code={t.code} label={t.label} />
           ))}
         </RetroCard>
+
+        <section id="restyling" className="scroll-mt-[calc(var(--nav-height,6rem)+1rem)]">
+          <RetroCard title="Restyling components on your own HTML page">
+            <div className="text-nb-ink space-y-3">
+              <p className="mt-0">
+                On a page you write yourself, the components (the guestbook, posts, tabs, buttons and the rest) take their
+                look from a few tokens. Set one once and every component follows it:
+              </p>
+              <CodeBox code={TOKENS_EXAMPLE} label="CSS" />
+              <p>
+                With site styles on, components keep the site&apos;s look until you set a token. With them off, they follow
+                your page: see-through boxes, edges in your text colour, your font. A token you set wins either way.
+              </p>
+              <p>What each token is, and what components do without it when site styles are off:</p>
+              <dl className="grid sm:grid-cols-[minmax(10rem,auto)_1fr] gap-x-4 gap-y-1 text-sm">
+                {Object.entries(TOKENS).map(([token, what]) => (
+                  <React.Fragment key={token}>
+                    <dt className="font-mono text-nb-ink">{token}</dt>
+                    <dd className="m-0 text-nb-ink">{what}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+              <p className="mb-0">
+                For anything more, each component has parts: classes like <code>.ts-guestbook-entry</code> that stay put.
+                The <Link href="/build/templates/components" className="underline text-thread-pine">component reference</Link>{' '}
+                lists every component&apos;s parts and the tokens it follows.
+              </p>
+            </div>
+          </RetroCard>
+        </section>
 
         <RetroCard title="Every class name">
           <div className="space-y-6">

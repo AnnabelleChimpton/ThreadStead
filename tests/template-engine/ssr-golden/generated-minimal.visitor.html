@@ -6,7 +6,7 @@
         <div class="ts-profile-header" data-component="profile-header">
           <div class="ts-profile-header-layout flex flex-col sm:flex-row sm:items-start sm:gap-6">
             <div class="ts-profile-photo-section">
-              <div class="profile-photo-wrapper flex flex-col items-center mb-4">
+              <div class="profile-photo-wrapper ts-photo flex flex-col items-center mb-4">
                 <div class="profile-photo-frame ts-photo-frame border-4 border-black shadow-[4px_4px_0_#000] bg-white p-1 ">
                   <img alt="Pat Example's profile photo" class="profile-photo-image object-cover w-32 h-32 rounded-full" src="/assets/default-avatar.gif">
             <div class="ts-profile-info-section flex-1">
@@ -19,7 +19,7 @@
                 <p class="ts-profile-bio text-thread-charcoal leading-relaxed">
                   "I make small websites."
               <div class="ts-profile-actions flex items-center gap-3 flex-wrap">
-                <div class="follow-button-wrapper">
+                <div class="follow-button-wrapper ts-follow">
                   <div class="flex items-center gap-2">
                     <button aria-label="Follow" class="ts-follow-button thread-button text-sm disabled:opacity-50 ">
                       "Follow"
@@ -37,7 +37,7 @@
         <div aria-labelledby="<useId>-tab-0" class="profile-tab-panel ts-tabs-panel p-4 sm:p-5 md:p-6" id="<useId>-panel-0" role="tabpanel" tabindex="0">
           " "
           <ts-island>
-            <div class="blog-posts profile-tab-content space-y-4">
+            <div class="blog-posts ts-posts profile-tab-content space-y-4">
               <h3 class="blog-posts-title ts-posts-heading thread-headline text-xl font-bold mb-3">
                 "Recent Posts"
               <div class="blog-posts-list space-y-3">

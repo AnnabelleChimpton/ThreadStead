@@ -18,7 +18,7 @@ export default function FollowButton(props: FollowButtonProps) {
   // Apply CSS properties as inline styles to wrapper
   const style = applyCSSProps(cssProps);
 
-  const baseClasses = 'follow-button-wrapper';
+  const baseClasses = 'follow-button-wrapper ts-follow';
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
 
   const wrapperClassName = customClassName

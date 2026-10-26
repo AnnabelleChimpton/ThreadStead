@@ -34,7 +34,7 @@ test("every part's class is on its component", () => {
 })
 
 test('every declaration reads only known tokens', () => {
-  const unknown = PARTS.flatMap((part) => Object.values(part.declarations).flatMap((value) => [...value.matchAll(/--ts-[\w-]+/g)].map((m) => m[0])))
+  const unknown = PARTS.flatMap((part) => Object.values(part.declarations ?? {}).flatMap((value) => [...value.matchAll(/--ts-[\w-]+/g)].map((m) => m[0])))
     .filter((token) => !(token in TOKENS))
   expect(unknown).toEqual([])
 })

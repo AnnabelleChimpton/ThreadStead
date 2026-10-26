@@ -48,7 +48,7 @@ export default function ProfilePhoto(props: ProfilePhotoProps) {
 
   const imageFitClass = getImageFitClass();
 
-  const baseWrapperClasses = "profile-photo-wrapper flex flex-col items-center mb-4";
+  const baseWrapperClasses = "profile-photo-wrapper ts-photo flex flex-col items-center mb-4";
 
   // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
   const filteredWrapperClasses = removeTailwindConflicts(baseWrapperClasses, cssProps);

@@ -105,7 +105,7 @@ export default function DynamicImage(props: DynamicImageProps) {
   }
 
   // Build className
-  const baseClasses = 'template-dynamic-image';
+  const baseClasses = 'template-dynamic-image ts-dynamic-image';
   const finalClassName = className
     ? `${baseClasses} ${className}`
     : baseClasses;
@@ -115,7 +115,7 @@ export default function DynamicImage(props: DynamicImageProps) {
   if (!imageUrl) {
     return (
       <div
-        className={`${finalClassName} flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded`}
+        className={`${finalClassName} ts-dynamic-image-empty flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded`}
         style={style}
       >
         <div className="text-center text-gray-400 dark:text-gray-500 text-sm">

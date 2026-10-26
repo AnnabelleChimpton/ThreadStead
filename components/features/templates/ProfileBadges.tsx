@@ -47,7 +47,7 @@ export default function ProfileBadges(props: ProfileBadgesProps) {
     : customClassName;
 
   // Base container classes
-  const baseContainerClasses = "profile-badges profile-tab-content space-y-6";
+  const baseContainerClasses = "profile-badges ts-badges profile-tab-content space-y-6";
 
   // Remove Tailwind classes that conflict with CSS props - USER STYLING IS QUEEN
   const filteredContainerClasses = removeTailwindConflicts(baseContainerClasses, cssProps);

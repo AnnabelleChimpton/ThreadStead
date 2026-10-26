@@ -98,6 +98,53 @@ function SettingsList({ settings }: { settings: ComponentPropDoc[] }) {
   );
 }
 
+/** Its classes for a page's CSS, and the tokens it follows (lib/templates/styling/component-parts.ts) */
+function PartsList({ doc }: { doc: ComponentDoc }) {
+  const parts = doc.parts ?? [];
+  return (
+    <details>
+      <summary className="cursor-pointer text-sm font-semibold text-thread-pine">Parts for your CSS ({parts.length})</summary>
+      <div className="mt-2 space-y-2 text-sm">
+        <dl className="divide-y divide-thread-sage/20">
+          {parts.map((part) => (
+            <div key={part.name} className="py-1.5 sm:grid sm:grid-cols-[minmax(7rem,max-content)_1fr] sm:gap-x-4">
+              <dt><code className="font-mono font-semibold text-thread-pine">.{part.name}</code></dt>
+              <dd className="m-0 text-thread-charcoal">{part.what}</dd>
+            </div>
+          ))}
+        </dl>
+        {doc.drawsAlso && (
+          <p className="m-0 text-thread-sage">
+            It has the parts of{" "}
+            {doc.drawsAlso.map((name, index) => (
+              <React.Fragment key={name}>
+                {index > 0 && (index === doc.drawsAlso!.length - 1 ? " and " : ", ")}
+                <a href={`#${name.toLowerCase()}`} className="font-mono underline">{name}</a>
+              </React.Fragment>
+            ))}{" "}
+            too.
+          </p>
+        )}
+        <p className="m-0 text-thread-sage">
+          {doc.tokens && (
+            <>
+              Its look follows{" "}
+              {doc.tokens.map((token, index) => (
+                <React.Fragment key={token}>
+                  {index > 0 && (index === doc.tokens!.length - 1 ? " and " : ", ")}
+                  <code className="font-mono">{token}</code>
+                </React.Fragment>
+              ))}
+              .{" "}
+            </>
+          )}
+          <Link href="/build/css#restyling" className="underline hover:text-thread-pine">How restyling components works</Link>
+        </p>
+      </div>
+    </details>
+  );
+}
+
 function ComponentEntry({ doc, tutorials }: { doc: ComponentDoc; tutorials: TutorialLink[] }) {
   const settings = doc.props.filter((prop) => !prop.css);
   const cssSettings = doc.props.filter((prop) => prop.css);
@@ -143,6 +190,8 @@ function ComponentEntry({ doc, tutorials }: { doc: ComponentDoc; tutorials: Tuto
             </div>
           </details>
         ) : null}
+
+        {doc.parts && <PartsList doc={doc} />}
 
         {tutorials.length > 0 && (
           <p className="m-0 text-sm text-thread-sage">

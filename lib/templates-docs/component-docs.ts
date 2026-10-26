@@ -9,6 +9,7 @@
  * /api/templates/component-schemas.
  */
 import type { ComponentRegistration, ComponentGroup, PropSchema } from '@/lib/templates/core/template-registry-types';
+import { partsOf, tokensReadBy, DRAWS_ALSO, type PartDoc } from '@/lib/templates/styling/component-parts';
 
 export interface ComponentPropDoc {
   name: string;
@@ -37,6 +38,12 @@ export interface ComponentDoc {
   props: ComponentPropDoc[];
   /** Listed first in its group, lowest first (the registration's `featured`) */
   featured?: number;
+  /** Its parts, the classes a page's CSS restyles it by (lib/templates/styling/component-parts.ts) */
+  parts?: PartDoc[];
+  /** The --ts-* tokens its look follows */
+  tokens?: string[];
+  /** Other components drawn inside it, whose parts it has too */
+  drawsAlso?: string[];
 }
 
 export interface ComponentGroupInfo {
@@ -121,7 +128,15 @@ export function componentDoc(registration: ComponentRegistration): ComponentDoc 
     ...(registration.relationship?.requiresParent ? { parent: registration.relationship.requiresParent } : {}),
     props: propDocs(registration.props),
     ...(registration.featured !== undefined ? { featured: registration.featured } : {}),
+    ...partsDoc(registration.name),
   };
+}
+
+function partsDoc(name: string): Pick<ComponentDoc, 'parts' | 'tokens' | 'drawsAlso'> {
+  const parts = partsOf(name);
+  if (parts.length === 0) return {};
+  const tokens = tokensReadBy(name);
+  return { parts, ...(tokens.length ? { tokens } : {}), ...(DRAWS_ALSO[name] ? { drawsAlso: [...DRAWS_ALSO[name]] } : {}) };
 }
 
 /** Every registered component, in reference order: by group, connected ones first, featured ones first in each. */

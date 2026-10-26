@@ -21,7 +21,7 @@ export default function MediaGrid(props: MediaGridProps) {
     ? customClassName.join(' ')
     : customClassName;
 
-  const baseClasses = "media-grid profile-tab-content space-y-6";
+  const baseClasses = "media-grid ts-media-grid profile-tab-content space-y-6";
   const filteredClasses = removeTailwindConflicts(baseClasses, cssProps);
   const style = applyCSSProps(cssProps);
 
