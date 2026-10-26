@@ -54,6 +54,8 @@ interface HomeProps {
   firstSteps?: FirstSteps | null;
   // Shown with the list when arriving from signup
   foundersNote?: string | null;
+  // Arriving from signup (/?welcome=1): the page says welcome and links theirs
+  welcome?: boolean;
   // Signed-out visitors: the demo house's yard, with its catalog art
   demoYard?: DecorationItem[];
 }
@@ -258,7 +260,7 @@ function UserPixelHome({ user }: { user: any }) {
   );
 }
 
-function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote, demoYard }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number; firstSteps?: FirstSteps | null; foundersNote?: string | null; demoYard?: DecorationItem[] }) {
+function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote, welcome, demoYard }: { siteConfig: SiteConfig; user?: any; customLandingPageSlug?: string; ogImageUrl: string; userCount?: number; firstSteps?: FirstSteps | null; foundersNote?: string | null; welcome?: boolean; demoYard?: DecorationItem[] }) {
 
   // Generate metadata for personalized homepage
   const homepageMetadata = contentMetadataGenerator.generateHomepageMetadata(siteConfig);
@@ -288,7 +290,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
   return (
     <>
       <PageMeta
-        title={homepageMetadata.title}
+        title={welcome ? 'Welcome home' : homepageMetadata.title}
         description={homepageMetadata.description}
         path="/"
         image={{ url: ogImageUrl, ...SHARE_CARD, alt: `${SITE_TITLE}: your page, your way` }}
@@ -310,6 +312,20 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
           {!user && (
             <HomeHero siteConfig={siteConfig} userCount={userCount} />
           )}
+
+          {/* Arriving from signup: a heading, and their page right there
+              (signup audit #7; the page had no heading at all) */}
+          {user?.primaryHandle && welcome && (() => {
+            const name = user.primaryHandle.split('@')[0];
+            return (
+              <header className="text-center mb-4">
+                <h1 className="thread-headline text-2xl sm:text-3xl font-bold mb-1">Welcome home, @{name}</h1>
+                <p className="text-nb-ink m-0">
+                  Your page is up: <Link href={`/resident/${encodeURIComponent(name)}`}>have a look</Link>.
+                </p>
+              </header>
+            );
+          })()}
 
           {/* Quick links - for logged-in users. One primary action, the rest plain links. */}
           {user && (
@@ -416,7 +432,7 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
   );
 }
 
-export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote, demoYard }: HomeProps) {
+export default function Home({ siteConfig, pageType, user, customPage, customLandingPageSlug, ogImageUrl, userCount, firstSteps, foundersNote, welcome, demoYard }: HomeProps) {
   // Route to appropriate component based on pageType
   switch (pageType) {
     case 'custom':
@@ -432,7 +448,7 @@ export default function Home({ siteConfig, pageType, user, customPage, customLan
     case 'unified':
     default:
       // 'unified' is the error fallback from getServerSideProps: the visitor homepage
-      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} firstSteps={firstSteps} foundersNote={foundersNote} demoYard={demoYard} />;
+      return <PersonalizedHomepage siteConfig={siteConfig} user={user} customLandingPageSlug={customLandingPageSlug} ogImageUrl={ogImageUrl} userCount={userCount} firstSteps={firstSteps} foundersNote={foundersNote} welcome={welcome} demoYard={demoYard} />;
   }
 }
 
@@ -508,6 +524,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (context)
           ogImageUrl,
           firstSteps,
           foundersNote,
+          welcome: context.query.welcome === '1',
           user: {
             id: user.id,
             did: user.did,
