@@ -49,7 +49,6 @@ const NOT_COOKIE_WRITES = [
   'pages/api/share/ring/[file].ts',
   // GET/HEAD only, reads no session: the Bluesky check on residents' addresses (middleware.ts)
   'pages/api/atproto-did/[label].ts',
-  'pages/api/ringhub/health-check.ts',
   'pages/api/users/resolve-dids.ts',
 ];
 
