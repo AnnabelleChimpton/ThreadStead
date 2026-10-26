@@ -236,7 +236,11 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
         headers: {
           'Content-Type': 'application/json'
         },
+        // What the release route takes: it answered this button's old
+        // { maxClaims } with a 400, and never sent the claimCode it read
         body: JSON.stringify({
+          releaseType: 'CLAIM_CODE',
+          generateCode: true,
           maxClaims: maxClaims ? parseInt(maxClaims) : null
         })
       });
@@ -244,11 +248,14 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
       const data = await response.json();
 
       if (response.ok) {
-        showSuccess(`Claim code generated: ${data.claimCode} (share URL: ${window.location.origin}/claim/${data.claimCode})`);
+        showSuccess(`Claim link: ${data.claimUrl}`);
         fetchDecorations();
+      } else {
+        showError(data.error || "Couldn't make a claim code. Try again.");
       }
     } catch (error) {
       console.error('Failed to generate claim code:', error);
+      showError("Couldn't make a claim code. Try again.");
     }
   };
 
@@ -262,15 +269,20 @@ export default function AdminDecorationsPage({ isAdmin, userId }: AdminDecoratio
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ userId })
+        // The grant route takes a list (it answered { userId } with a 400)
+        body: JSON.stringify({ userIds: [userId.trim()] })
       });
 
       if (response.ok) {
         showSuccess('Access granted.');
         fetchDecorations();
+      } else {
+        const data = await response.json().catch(() => ({}));
+        showError(data.error || "Couldn't grant access. Try again.");
       }
     } catch (error) {
       console.error('Failed to grant access:', error);
+      showError("Couldn't grant access. Try again.");
     }
   };
 

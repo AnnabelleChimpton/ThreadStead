@@ -1,25 +1,8 @@
 import { db } from "@/lib/config/database/connection";
+import { ZodError } from "zod";
 import { apiHandler } from "@/lib/api/handler";
+import { createDecorationSchema, windowProblem } from "@/lib/domain/decorations/admin-requests";
 import { parsePagePagination } from "@/lib/server/http/pagination";
-
-interface CreateDecorationRequest {
-  itemId: string;
-  name: string;
-  type: string;
-  category: string;
-  zone: string;
-  section?: string;
-  iconSvg?: string;
-  renderSvg?: string;
-  imagePath?: string;
-  gridWidth?: number;
-  gridHeight?: number;
-  description?: string;
-  releaseType?: 'DEFAULT' | 'PUBLIC' | 'LIMITED_TIME' | 'CLAIM_CODE' | 'ADMIN_ONLY' | 'BETA_USERS';
-  releaseStartAt?: string;
-  releaseEndAt?: string;
-  maxClaims?: number;
-}
 
 export default apiHandler(
   { methods: ["GET", "POST"], auth: "admin", rateLimit: "admin" },
@@ -84,21 +67,17 @@ export default apiHandler(
           iconSvg,
           renderSvg,
           imagePath,
-          gridWidth = 1,
-          gridHeight = 1,
           description,
           releaseType = 'DEFAULT',
           releaseStartAt,
           releaseEndAt,
-          maxClaims
-        }: CreateDecorationRequest = req.body;
-
-        // Validate required fields
-        if (!itemId || !name || !type || !category || !zone) {
-          return res.status(400).json({
-            error: "Missing required fields: itemId, name, type, category, zone"
-          });
-        }
+          maxClaims,
+          gridWidth: width,
+          gridHeight: height
+        } = createDecorationSchema.parse(req.body);
+        // A cleared size box sends null: 1×1, as when left out
+        const gridWidth = width ?? 1;
+        const gridHeight = height ?? 1;
 
         // Check if itemId already exists
         const existingItem = await db.decorationItem.findUnique({
@@ -118,22 +97,11 @@ export default apiHandler(
           });
         }
 
-        // Validate time-based releases
+        // A limited-time release from the start needs its window; the form
+        // has none, so it's set afterwards with Release
         if (releaseType === 'LIMITED_TIME') {
-          if (!releaseStartAt || !releaseEndAt) {
-            return res.status(400).json({
-              error: "releaseStartAt and releaseEndAt required for LIMITED_TIME releases"
-            });
-          }
-
-          const startDate = new Date(releaseStartAt);
-          const endDate = new Date(releaseEndAt);
-
-          if (startDate >= endDate) {
-            return res.status(400).json({
-              error: "releaseStartAt must be before releaseEndAt"
-            });
-          }
+          const problem = windowProblem(releaseStartAt ? new Date(releaseStartAt) : null, releaseEndAt ? new Date(releaseEndAt) : null);
+          if (problem) return res.status(400).json({ error: `${problem} Make the item first, then set its window with Release.` });
         }
 
         // Create decoration
@@ -167,6 +135,8 @@ export default apiHandler(
         return res.status(201).json({ decoration });
       }
     } catch (error) {
+      // A body that doesn't fit is apiHandler's to answer (a 400 that says what to fix)
+      if (error instanceof ZodError) throw error;
       console.error('Admin decorations API error:', error);
       return res.status(500).json({ error: "Internal server error" });
     }

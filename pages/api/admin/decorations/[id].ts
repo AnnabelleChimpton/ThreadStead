@@ -1,25 +1,8 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
+import { ZodError } from "zod";
 import { apiHandler } from "@/lib/api/handler";
-
-interface UpdateDecorationRequest {
-  name?: string;
-  type?: string;
-  category?: string;
-  zone?: string;
-  section?: string | null;
-  iconSvg?: string;
-  renderSvg?: string;
-  imagePath?: string;
-  gridWidth?: number;
-  gridHeight?: number;
-  description?: string;
-  isActive?: boolean;
-  releaseType?: 'DEFAULT' | 'PUBLIC' | 'LIMITED_TIME' | 'CLAIM_CODE' | 'ADMIN_ONLY' | 'BETA_USERS';
-  releaseStartAt?: string | null;
-  releaseEndAt?: string | null;
-  maxClaims?: number | null;
-  collection?: string | null;
-}
+import { updateDecorationSchema, windowProblem } from "@/lib/domain/decorations/admin-requests";
 
 export default apiHandler(
   { methods: ["GET", "PUT", "DELETE"], auth: "admin", rateLimit: "admin" },
@@ -49,68 +32,39 @@ export default apiHandler(
       }
 
       if (req.method === 'PUT') {
-        // Update decoration
-        const {
-          name,
-          type,
-          category,
-          zone,
-          section,
-          iconSvg,
-          renderSvg,
-          imagePath,
-          gridWidth,
-          gridHeight,
-          description,
-          isActive,
-          releaseType,
-          releaseStartAt,
-          releaseEndAt,
-          maxClaims,
-          collection
-        }: UpdateDecorationRequest = req.body;
+        // Update decoration: what's left out stays as it is
+        const body = updateDecorationSchema.parse(req.body);
 
-        // Validate time-based releases if updating to LIMITED_TIME
+        // A limited-time item keeps its window unless new dates come with it
+        const releaseType = body.releaseType ?? existingDecoration.releaseType;
+        const start = body.releaseStartAt !== undefined ? (body.releaseStartAt ? new Date(body.releaseStartAt) : null) : existingDecoration.releaseStartAt;
+        const end = body.releaseEndAt !== undefined ? (body.releaseEndAt ? new Date(body.releaseEndAt) : null) : existingDecoration.releaseEndAt;
         if (releaseType === 'LIMITED_TIME') {
-          if (!releaseStartAt || !releaseEndAt) {
-            return res.status(400).json({
-              error: "releaseStartAt and releaseEndAt required for LIMITED_TIME releases"
-            });
-          }
-
-          const startDate = new Date(releaseStartAt);
-          const endDate = new Date(releaseEndAt);
-
-          if (startDate >= endDate) {
-            return res.status(400).json({
-              error: "releaseStartAt must be before releaseEndAt"
-            });
-          }
+          const problem = windowProblem(start, end);
+          if (problem) return res.status(400).json({ error: problem });
         }
 
-        // Prepare update data
-        const updateData: any = {};
-        if (name !== undefined) updateData.name = name;
-        if (type !== undefined) updateData.type = type;
-        if (category !== undefined) updateData.category = category;
-        if (zone !== undefined) updateData.zone = zone;
-        if (section !== undefined) updateData.section = section || null;
-        if (iconSvg !== undefined) updateData.iconSvg = iconSvg;
-        if (renderSvg !== undefined) updateData.renderSvg = renderSvg;
-        if (imagePath !== undefined) updateData.imagePath = imagePath;
-        if (gridWidth !== undefined) updateData.gridWidth = gridWidth;
-        if (gridHeight !== undefined) updateData.gridHeight = gridHeight;
-        if (description !== undefined) updateData.description = description;
-        if (isActive !== undefined) updateData.isActive = isActive;
-        if (releaseType !== undefined) updateData.releaseType = releaseType;
-        if (releaseStartAt !== undefined) {
-          updateData.releaseStartAt = releaseStartAt ? new Date(releaseStartAt) : null;
-        }
-        if (releaseEndAt !== undefined) {
-          updateData.releaseEndAt = releaseEndAt ? new Date(releaseEndAt) : null;
-        }
-        if (maxClaims !== undefined) updateData.maxClaims = maxClaims;
-        if (collection !== undefined) updateData.collection = collection?.trim() || null;
+        const updateData: Prisma.DecorationItemUpdateInput = {};
+        if (body.name !== undefined) updateData.name = body.name;
+        if (body.type !== undefined) updateData.type = body.type;
+        if (body.category !== undefined) updateData.category = body.category;
+        if (body.zone !== undefined) updateData.zone = body.zone;
+        if (body.section !== undefined) updateData.section = body.section || null;
+        // The edit form doesn't load the art (too large) and sends "": that
+        // wiped every item's SVGs on each edit. Empty means unchanged.
+        if (body.iconSvg) updateData.iconSvg = body.iconSvg;
+        if (body.renderSvg) updateData.renderSvg = body.renderSvg;
+        if (body.imagePath !== undefined) updateData.imagePath = body.imagePath;
+        // A cleared size box sends null: unchanged
+        if (body.gridWidth != null) updateData.gridWidth = body.gridWidth;
+        if (body.gridHeight != null) updateData.gridHeight = body.gridHeight;
+        if (body.description !== undefined) updateData.description = body.description;
+        if (body.isActive !== undefined) updateData.isActive = body.isActive;
+        if (body.releaseType !== undefined) updateData.releaseType = body.releaseType;
+        if (body.releaseStartAt !== undefined) updateData.releaseStartAt = start;
+        if (body.releaseEndAt !== undefined) updateData.releaseEndAt = end;
+        if (body.maxClaims !== undefined) updateData.maxClaims = body.maxClaims;
+        if (body.collection !== undefined) updateData.collection = body.collection?.trim() || null;
 
         const updatedDecoration = await db.decorationItem.update({
           where: { id },
@@ -144,6 +98,8 @@ export default apiHandler(
         return res.status(200).json({ message: "Decoration deleted successfully" });
       }
     } catch (error) {
+      // A body that doesn't fit is apiHandler's to answer (a 400 that says what to fix)
+      if (error instanceof ZodError) throw error;
       console.error('Admin decoration management API error:', error);
       return res.status(500).json({ error: "Internal server error" });
     }

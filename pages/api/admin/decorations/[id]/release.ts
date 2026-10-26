@@ -1,15 +1,10 @@
 import { getSiteBaseUrl } from '@/lib/config/site-url';
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/config/database/connection";
 import { randomBytes } from 'crypto';
+import { ZodError } from "zod";
 import { apiHandler } from "@/lib/api/handler";
-
-interface CreateReleaseRequest {
-  releaseType: 'LIMITED_TIME' | 'CLAIM_CODE';
-  releaseStartAt?: string;
-  releaseEndAt?: string;
-  maxClaims?: number;
-  generateCode?: boolean;
-}
+import { releaseDecorationSchema, windowProblem } from "@/lib/domain/decorations/admin-requests";
 
 export default apiHandler(
   { methods: ["POST"], auth: "admin", rateLimit: "admin" },
@@ -29,41 +24,16 @@ export default apiHandler(
         return res.status(404).json({ error: "Decoration not found" });
       }
 
-      const {
-        releaseType,
-        releaseStartAt,
-        releaseEndAt,
-        maxClaims,
-        generateCode = false
-      }: CreateReleaseRequest = req.body;
-
-      if (!releaseType || !['LIMITED_TIME', 'CLAIM_CODE'].includes(releaseType)) {
-        return res.status(400).json({
-          error: "releaseType must be 'LIMITED_TIME' or 'CLAIM_CODE'"
-        });
-      }
+      const { releaseType, releaseStartAt, releaseEndAt, maxClaims, generateCode = false } = releaseDecorationSchema.parse(req.body);
 
       // Validate time-based releases
       if (releaseType === 'LIMITED_TIME') {
-        if (!releaseStartAt || !releaseEndAt) {
-          return res.status(400).json({
-            error: "releaseStartAt and releaseEndAt required for LIMITED_TIME releases"
-          });
-        }
-
-        const startDate = new Date(releaseStartAt);
-        const endDate = new Date(releaseEndAt);
-
-        if (startDate >= endDate) {
-          return res.status(400).json({
-            error: "releaseStartAt must be before releaseEndAt"
-          });
-        }
-
-        if (startDate < new Date()) {
-          return res.status(400).json({
-            error: "releaseStartAt cannot be in the past"
-          });
+        const startDate = releaseStartAt ? new Date(releaseStartAt) : null;
+        const problem = windowProblem(startDate, releaseEndAt ? new Date(releaseEndAt) : null);
+        if (problem) return res.status(400).json({ error: problem });
+        // A minute's grace: a start "now" from a form is already a little past
+        if (startDate! < new Date(Date.now() - 60_000)) {
+          return res.status(400).json({ error: "The start can't be in the past." });
         }
       }
 
@@ -97,12 +67,15 @@ export default apiHandler(
       }
 
       // Update decoration with release settings
-      const updateData: any = {
+      const updateData: Prisma.DecorationItemUpdateInput = {
         releaseType,
         releaseStartAt: releaseStartAt ? new Date(releaseStartAt) : null,
         releaseEndAt: releaseEndAt ? new Date(releaseEndAt) : null,
-        maxClaims: maxClaims || null,
-        claimCode
+        // Left out keeps the item's limit (it used to wipe it)
+        ...(maxClaims !== undefined && { maxClaims }),
+        // A claim-code release keeps its code unless a new one is asked for;
+        // a limited-time one has none
+        claimCode: releaseType === 'CLAIM_CODE' ? claimCode ?? decoration.claimCode : null,
       };
 
       const updatedDecoration = await db.decorationItem.update({
@@ -116,9 +89,11 @@ export default apiHandler(
 
       return res.status(200).json({
         decoration: updatedDecoration,
-        claimUrl: claimCode ? `${getSiteBaseUrl()}/claim/${claimCode}` : null
+        claimUrl: updatedDecoration.claimCode ? `${getSiteBaseUrl()}/claim/${updatedDecoration.claimCode}` : null
       });
     } catch (error) {
+      // A body that doesn't fit is apiHandler's to answer (a 400 that says what to fix)
+      if (error instanceof ZodError) throw error;
       console.error('Admin decoration release API error:', error);
       return res.status(500).json({ error: "Internal server error" });
     }

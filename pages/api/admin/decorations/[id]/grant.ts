@@ -1,10 +1,7 @@
 import { db } from "@/lib/config/database/connection";
+import { ZodError } from "zod";
 import { apiHandler } from "@/lib/api/handler";
-
-interface GrantAccessRequest {
-  userIds: string[];
-  claimMethod?: 'ADMIN_GRANT' | 'BETA_ACCESS';
-}
+import { grantDecorationSchema } from "@/lib/domain/decorations/admin-requests";
 
 export default apiHandler(
   { methods: ["POST"], auth: "admin", rateLimit: "admin" },
@@ -24,16 +21,9 @@ export default apiHandler(
         return res.status(404).json({ error: "Decoration not found" });
       }
 
-      const {
-        userIds,
-        claimMethod = 'ADMIN_GRANT'
-      }: GrantAccessRequest = req.body;
-
-      if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-        return res.status(400).json({
-          error: "userIds must be a non-empty array"
-        });
-      }
+      const body = grantDecorationSchema.parse(req.body);
+      const userIds = [...new Set(body.userIds)];
+      const claimMethod = body.claimMethod ?? 'ADMIN_GRANT';
 
       // Validate users exist
       const validUsers = await db.user.findMany({
@@ -105,6 +95,8 @@ export default apiHandler(
         decoration: updatedDecoration
       });
     } catch (error) {
+      // A body that doesn't fit is apiHandler's to answer (a 400 that says what to fix)
+      if (error instanceof ZodError) throw error;
       console.error('Admin decoration grant API error:', error);
       return res.status(500).json({ error: "Internal server error" });
     }
