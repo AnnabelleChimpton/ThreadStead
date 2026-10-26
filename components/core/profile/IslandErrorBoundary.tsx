@@ -11,6 +11,8 @@ interface IslandErrorBoundaryProps {
   ownerSees?: boolean;
   /** An editor preview: where the component's tag is in the code, for Alt-click (words-preview.ts) */
   sourceAt?: string;
+  /** look="plain" on the component: styles/component-parts.css takes its boxes away */
+  look?: string;
 }
 
 // Error boundary for islands rendering (P3.3 - Per-Island Error Boundaries).
@@ -41,7 +43,10 @@ export class IslandErrorBoundary extends React.Component<IslandErrorBoundaryProp
     if (this.state.hasError && !this.props.ownerSees) return null;
     return React.createElement(
       'ts-island',
-      this.props.sourceAt ? { 'data-ts-at': this.props.sourceAt } : null,
+      {
+        ...(this.props.sourceAt ? { 'data-ts-at': this.props.sourceAt } : {}),
+        ...(this.props.look ? { 'data-look': this.props.look } : {}),
+      },
       this.state.hasError ? (
         <p className="island-error-fallback" role="status" style={{ padding: '8px 12px', border: '1px dashed currentColor', fontSize: '14px' }}>
           {this.props.component ? `<${this.props.component}>` : 'This part'} couldn&apos;t show here. Only you see this note.

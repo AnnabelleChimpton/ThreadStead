@@ -606,6 +606,72 @@ a {
   },
 
   {
+    slug: 'restyle-components',
+    title: 'Restyle every component at once',
+    lede: 'Make the guestbook, your posts and your buttons match your page with three lines of CSS, and turn a picture into a button.',
+    shelf: 'further',
+    steps: [
+      {
+        id: 'tokens',
+        title: 'One colour for every box',
+        body: "Components like the guestbook and your posts draw their own boxes. Instead of chasing each box's class, set a token once at the top of your CSS and every component follows it: `--ts-card` for the boxes, `--ts-edge` for their borders, `--ts-shadow` for their shadows. The CSS guide lists them all.",
+        code: `<main>
+  <h1>Hi, I'm Pat!</h1>
+  <h2>Sign my guestbook</h2>
+  <Guestbook heading="none" />
+  <h2>Lately</h2>
+  <BlogPosts limit="3" heading="none" />
+</main>`,
+        css: `:root {
+  --ts-card: #fff6e0;
+  --ts-edge: #b2432f;
+  --ts-shadow: 3px 3px 0 #b2432f;
+}`,
+        live: false,
+        tips: [
+          "With site styles on, components keep the site's look until you set a token. With them off, they follow your page's own colour and font, and a token still wins.",
+          "`var(--ts-edge)` works in your own rules too, so your boxes and the components' share one colour.",
+        ],
+        checks: [
+          { uses: 'Guestbook', hint: 'Put a <Guestbook /> on the page to see the tokens on it.' },
+          { selfCheck: "Do the guestbook's boxes take your colours in the preview?" },
+        ],
+      },
+      {
+        id: 'plain',
+        title: 'A picture for a button',
+        body: 'Write `look="plain"` on a component and its boxes, edges and shadows go. Around a picture, a plain <Button> is just the picture, and clicking it still works.',
+        code: `<Button look="plain">
+  <OnClick><ShowToast message="Hello to you too" type="info" /></OnClick>
+  <img src="/assets/default-avatar.gif" alt="Say hello" width="96">
+</Button>`,
+        tips: [
+          'Components inside a plain one go plain too, so a plain card full of buttons is all plain.',
+        ],
+        checks: [
+          { uses: 'Button', props: { look: 'plain' }, hint: 'Write look="plain" on your <Button>.' },
+        ],
+      },
+      {
+        id: 'parts',
+        title: 'Just one part',
+        body: 'For anything the tokens don\'t cover, every component has parts: classes like `.ts-guestbook-entry` that stay put. Each one is listed under its component on the components page, in "Parts for your CSS". A rule on a part beats the tokens and the site\'s look.',
+        code: `<h2>Sign my guestbook</h2>
+<Guestbook heading="none" />`,
+        css: `.ts-guestbook-entry {
+  border-style: dashed;
+  border-radius: 0;
+}`,
+        live: false,
+        checks: [
+          { selfCheck: 'Did the messages in your guestbook change in the preview?' },
+        ],
+      },
+    ],
+    wrapUp: "That's every component in your colours, from a few lines at the top of your CSS. Next: keeping a list on your page.",
+  },
+
+  {
     slug: 'lists',
     title: 'Lists of your things',
     lede: 'Keep a list on your page, like the books you\'re reading, and let it grow and shrink.',

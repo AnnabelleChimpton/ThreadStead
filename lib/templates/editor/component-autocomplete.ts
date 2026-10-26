@@ -41,6 +41,8 @@ export function buildExtraTags(components: ComponentSchema[]): Record<string, Ta
     for (const p of c.props) {
       attrs[p.name] = p.values ?? null;
     }
+    // look="plain", on any component with a box (lib/templates/styling/component-parts.ts)
+    if (c.plain) attrs.look = ['plain'];
     // Only the component's own settings: HTML's global and aria-* attributes
     // buried them in the list
     specs[c.name] = { attrs, globalAttrs: false };

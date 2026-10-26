@@ -36,3 +36,13 @@ test.each([
 ])('%s offers %s first', async (typed, expected) => {
   expect(await firstFor(typed)).toBe(expected)
 })
+
+// look="plain" on components with a box (lib/templates/styling/component-parts.ts), not on ones without
+test.each([
+  ['<Button lo', 'look'],
+  ['<Guestbook lo', 'look'],
+  ['<Button look="', 'plain'],
+  ['<Var lo', undefined],
+])('%s completes to %s', async (typed, expected) => {
+  expect(await firstFor(typed)).toBe(expected)
+})

@@ -178,7 +178,7 @@
   background: var(--ts-card, transparent);
   color: var(--ts-ink);
   border-color: var(--ts-edge, currentColor);
-  box-shadow: var(--ts-shadow, none);
+  box-shadow: none;
 }
 /* ProfilePhoto: the frame around the photo */
 :where([data-template-root][data-site-styles="off"]) .ts-photo-frame {
@@ -599,4 +599,319 @@
   color: var(--ts-ink);
   border-color: var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent));
   font-family: var(--ts-font);
+}
+
+/* ---------- look="plain" ---------- */
+ts-island[data-look="plain"] {
+  --ts-card: transparent;
+  --ts-edge: transparent;
+  --ts-shadow: none;
+}
+/* Button: the button */
+ts-island[data-look="plain"] .ts-button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* RetroCard: the card */
+ts-island[data-look="plain"] .ts-card {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  outline-color: transparent;
+}
+/* Tabs: the box around the tabs and the panel */
+ts-island[data-look="plain"] .ts-tabs {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  outline-color: transparent;
+}
+/* Tabs: a tab */
+ts-island[data-look="plain"] .ts-tabs-tab {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Guestbook: the message box */
+ts-island[data-look="plain"] .ts-guestbook-field {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Guestbook: its buttons */
+ts-island[data-look="plain"] .ts-guestbook-button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* Guestbook: one message */
+ts-island[data-look="plain"] .ts-guestbook-entry {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* BlogPosts: one post */
+ts-island[data-look="plain"] .ts-post {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* BlogPosts: its small buttons */
+ts-island[data-look="plain"] .ts-post-actions button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* BlogPosts: the comments button under a post */
+ts-island[data-look="plain"] .ts-post-footer button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* ProfilePhoto: the frame around the photo */
+ts-island[data-look="plain"] .ts-photo-frame {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileHeader: its buttons */
+ts-island[data-look="plain"] .ts-profile-button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* TInput: the text box */
+ts-island[data-look="plain"] .ts-input {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Select: the menu */
+ts-island[data-look="plain"] .ts-select {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Slider: the slider */
+ts-island[data-look="plain"] .ts-slider-track {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ColorPicker: the colour box */
+ts-island[data-look="plain"] .ts-color-picker-swatch {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* FollowButton: Follow and Unfollow */
+ts-island[data-look="plain"] .ts-follow-button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* FriendBadge: the badge */
+ts-island[data-look="plain"] .ts-friend-badge {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* MutualFriends: the button with the count */
+ts-island[data-look="plain"] .ts-mutual-friends-button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* MutualFriends: the friends it opens */
+ts-island[data-look="plain"] .ts-mutual-friends-list {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* MutualFriends: a friend's picture */
+ts-island[data-look="plain"] .ts-mutual-friends-avatar {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* FriendDisplay: the box */
+ts-island[data-look="plain"] .ts-friends {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* FriendDisplay: one friend */
+ts-island[data-look="plain"] .ts-friend {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* FriendDisplay: their picture */
+ts-island[data-look="plain"] .ts-friend-avatar {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* WebsiteDisplay: the box */
+ts-island[data-look="plain"] .ts-websites {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* MediaGrid: "View All" */
+ts-island[data-look="plain"] .ts-media-view-all {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* MediaGrid: one photo's frame */
+ts-island[data-look="plain"] .ts-media-item {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileBadges: "View Collection" */
+ts-island[data-look="plain"] .ts-badges-view-all {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* RevealBox: the button */
+ts-island[data-look="plain"] .ts-reveal-button {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* RevealBox: the button, as a link (buttonStyle="link" or "minimal") */
+ts-island[data-look="plain"] .ts-reveal-link {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ImageCarousel: the box */
+ts-island[data-look="plain"] .ts-image-carousel {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ImageCarousel: the row of small pictures */
+ts-island[data-look="plain"] .ts-carousel-thumbnails {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ImageCarousel: a small picture */
+ts-island[data-look="plain"] .ts-carousel-thumbnail {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ImageCarousel: a dot */
+ts-island[data-look="plain"] .ts-carousel-dot {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ImageCarousel: the box when there are no pictures */
+ts-island[data-look="plain"] .ts-image-carousel-empty {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Embed: the box before Play */
+ts-island[data-look="plain"] .ts-embed-placeholder {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Embed: Play */
+ts-island[data-look="plain"] .ts-embed-button.btn {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  border-width: 0;
+  padding: 0;
+  text-shadow: none;
+}
+/* ProfileMusic: its box */
+ts-island[data-look="plain"] .ts-profile-music .ts-music {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileMusic: its buttons */
+ts-island[data-look="plain"] .ts-profile-music .ts-music .ts-music-btn {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileMusic: a button under the pointer */
+ts-island[data-look="plain"] .ts-profile-music .ts-music .ts-music-btn:hover {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileMusic: a button that's on */
+ts-island[data-look="plain"] .ts-profile-music .ts-music .ts-music-btn[aria-pressed="true"] {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileMusic: the progress line */
+ts-island[data-look="plain"] .ts-profile-music .ts-music-track {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* ProfileMusic: how far it's played */
+ts-island[data-look="plain"] .ts-profile-music .ts-music-progress {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* DynamicImage: the box when there's no picture */
+ts-island[data-look="plain"] .ts-dynamic-image-empty {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Notes only you see: the note */
+ts-island[data-look="plain"] .ts-owner-note {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
 }

@@ -15,6 +15,7 @@ import { componentRegistry } from '@/lib/templates/core/template-registry';
 import { separateCSSProps, applyCSSProps } from '@/lib/templates/styling/universal-css-props';
 import { parseStyleString } from '@/lib/utils/css/parse-style-string';
 import { IslandErrorBoundary } from '@/components/core/profile/IslandErrorBoundary';
+import { isLook } from '@/lib/templates/styling/component-parts';
 import IslandPage, { type IslandPageProps } from './IslandPage';
 
 export default function PageWithComponents(props: Omit<IslandPageProps, 'renderIsland'>) {
@@ -47,12 +48,17 @@ function renderIsland(island: Island, children: React.ReactNode[] | undefined, r
     };
   }
 
+  // look="plain" is the island's, not the component's (styles/component-parts.css)
+  const { look, ...forComponent } = componentProps;
+  componentProps = forComponent;
+
   return (
     <IslandErrorBoundary
       islandId={island.id}
       key={island.id}
       component={island.component}
       sourceAt={sourceAt}
+      look={isLook(look) ? look : undefined}
       ownerSees={residentData.viewer?.id != null && residentData.viewer.id === residentData.owner?.id}
     >
       <ResidentDataProvider data={residentData}>

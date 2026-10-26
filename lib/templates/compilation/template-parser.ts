@@ -36,6 +36,7 @@ import {
 import { paragraphSafe } from './paragraph-safe';
 import { expressionProblem } from '../state/expression-evaluator';
 import { isSafePageAttribute } from '@/components/features/templates/state/actions/page-targets';
+import { isLook } from '@/lib/templates/styling/component-parts';
 
 // QUICK WIN #2: Cache schema to avoid recreating on every parse
 // Schema is only rebuilt when component registry changes
@@ -1028,6 +1029,13 @@ function reportComponentProps(source: string): string[] {
           coercePropValue(value, propSchema, propName).problem ??
           valueProblem(name, propName, value, token.attributes);
         if (problem) messages.push(`${asWritten} ${problem}`);
+        continue;
+      }
+      // look="plain" goes on any component (lib/templates/styling/component-parts.ts)
+      if (attr.name.toLowerCase() === 'look') {
+        if (!isLook(decodeAttributeValue(attr.value ?? ''))) {
+          messages.push(`${asWritten} look takes "plain" (no boxes, edges or shadows), so it's left out.`);
+        }
         continue;
       }
       // name= and var= both mean "which variable", on different tags

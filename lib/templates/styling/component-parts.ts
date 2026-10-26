@@ -31,6 +31,17 @@ export const TOKENS = {
 
 export type Token = keyof typeof TOKENS;
 
+/**
+ * look="…" on any component. "plain": no boxes, edges or shadows, in it and
+ * in the components inside it (plainLookCss). The one look so far.
+ */
+export const LOOKS = ['plain'] as const;
+export type Look = (typeof LOOKS)[number];
+
+export function isLook(value: unknown): value is Look {
+  return LOOKS.includes(value as Look);
+}
+
 const EDGE = 'var(--ts-edge, color-mix(in srgb, currentColor 35%, transparent))';
 const SOLID_EDGE = 'var(--ts-edge, currentColor)';
 const CARD = 'var(--ts-card, transparent)';
@@ -76,6 +87,8 @@ export interface Part {
   what: string;
   /** Narrows it to a state or a pseudo-element: `[aria-selected="true"]`, `::before`, `:hover` */
   state?: string;
+  /** A button, or a badge drawn like one: look="plain" takes its border and padding too */
+  kind?: 'button';
   /**
    * Each declaration's value as written for site styles off. One that reads
    * a token also goes in a page's CSS when the page sets that token; one
@@ -88,7 +101,7 @@ export interface Part {
 /** Every component that draws something of its own */
 export const PARTS: Part[] = [
   // Button
-  { component: 'Button', part: 'ts-button', what: 'the button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'border-radius': 'var(--ts-radius, 4px)', 'font-family': FONT } },
+  { component: 'Button', part: 'ts-button', what: 'the button', kind: 'button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'border-radius': 'var(--ts-radius, 4px)', 'font-family': FONT } },
 
   // RetroCard
   { component: 'RetroCard', part: 'ts-card', what: 'the card', declarations: frame('8px') },
@@ -109,7 +122,7 @@ export const PARTS: Part[] = [
   { component: 'Guestbook', part: 'ts-guestbook-divider', what: 'the line under the heading', declarations: { 'border-top-color': EDGE } },
   { component: 'Guestbook', part: 'ts-guestbook-divider', what: 'the line\'s stitching', state: '::before', declarations: { display: 'none' } },
   { component: 'Guestbook', part: 'ts-guestbook-field', what: 'the message box', declarations: { ...box('8px'), 'box-shadow': 'none' } },
-  { component: 'Guestbook', part: 'ts-guestbook-button', what: 'its buttons', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'border-radius': 'var(--ts-radius, 6px)', 'font-family': FONT } },
+  { component: 'Guestbook', part: 'ts-guestbook-button', what: 'its buttons', kind: 'button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'border-radius': 'var(--ts-radius, 6px)', 'font-family': FONT } },
   { component: 'Guestbook', part: 'ts-guestbook-entry', what: 'one message', declarations: box('8px') },
   { component: 'Guestbook', part: 'ts-guestbook-author', what: 'a message\'s author', declarations: { color: INK } },
   { component: 'Guestbook', part: 'ts-guestbook-message', what: 'a message\'s words', declarations: { color: INK } },
@@ -125,10 +138,10 @@ export const PARTS: Part[] = [
   { component: 'BlogPosts', part: 'ts-post-date', what: 'when', declarations: muted },
   { component: 'BlogPosts', part: 'ts-post-content', what: 'what it says', declarations: { color: INK } },
   { component: 'BlogPosts', part: 'ts-post', what: 'its words', state: ' .thread-content', declarations: { color: INK } },
-  { component: 'BlogPosts', part: 'ts-post-actions', what: 'its small buttons', state: ' button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW } },
+  { component: 'BlogPosts', part: 'ts-post-actions', what: 'its small buttons', state: ' button', kind: 'button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW } },
 
   { component: 'BlogPosts', part: 'ts-post-footer', what: 'the line under a post', declarations: { 'border-top-color': EDGE } },
-  { component: 'BlogPosts', part: 'ts-post-footer', what: 'the comments button under a post', state: ' button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW } },
+  { component: 'BlogPosts', part: 'ts-post-footer', what: 'the comments button under a post', state: ' button', kind: 'button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': 'none' } },
 
   // ProfilePhoto
   { component: 'ProfilePhoto', part: 'ts-photo', what: 'the photo, with its frame' },
@@ -146,7 +159,7 @@ export const PARTS: Part[] = [
   { component: 'ProfileHeader', part: 'ts-profile-status', what: 'the small label under the name', declarations: { color: INK, 'font-family': FONT, opacity: '0.8' } },
   { component: 'ProfileHeader', part: 'ts-profile-bio-section', what: 'around the bio (in Bio too)' },
   { component: 'ProfileHeader', part: 'ts-profile-bio', what: 'the bio (in Bio too)', declarations: { color: INK } },
-  { component: 'ProfileHeader', part: 'ts-profile-button', what: 'its buttons', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'font-family': FONT } },
+  { component: 'ProfileHeader', part: 'ts-profile-button', what: 'its buttons', kind: 'button', declarations: { background: CARD, color: INK, 'border-color': SOLID_EDGE, 'box-shadow': SHADOW, 'font-family': FONT } },
   { component: 'Bio', part: 'ts-profile-bio-section', what: 'the bio and its heading' },
   { component: 'Bio', part: 'ts-bio-heading', what: 'its heading', declarations: heading },
   { component: 'Bio', part: 'ts-profile-bio', what: 'the words (also ts-bio-text)' },
@@ -173,14 +186,14 @@ export const PARTS: Part[] = [
 
   // FollowButton (also in ProfileHeader)
   { component: 'FollowButton', part: 'ts-follow', what: 'the button and what it says' },
-  { component: 'FollowButton', part: 'ts-follow-button', what: 'Follow and Unfollow', declarations: button('4px') },
+  { component: 'FollowButton', part: 'ts-follow-button', what: 'Follow and Unfollow', kind: 'button', declarations: button('4px') },
   { component: 'FollowButton', part: 'ts-follow-note', what: '"log in to follow"', declarations: { color: INK, 'font-family': FONT, opacity: '0.8' } },
   { component: 'FollowButton', part: 'ts-follow-status', what: '"Friends" or "Follows you"', declarations: muted },
 
   // FriendBadge, MutualFriends (also in ProfileHeader)
-  { component: 'FriendBadge', part: 'ts-friend-badge', what: 'the badge', declarations: button('4px') },
+  { component: 'FriendBadge', part: 'ts-friend-badge', what: 'the badge', kind: 'button', declarations: button('4px') },
   { component: 'MutualFriends', part: 'ts-mutual-friends', what: 'the button and the friends it opens' },
-  { component: 'MutualFriends', part: 'ts-mutual-friends-button', what: 'the button with the count', declarations: button('4px') },
+  { component: 'MutualFriends', part: 'ts-mutual-friends-button', what: 'the button with the count', kind: 'button', declarations: button('4px') },
   { component: 'MutualFriends', part: 'ts-mutual-friends-list', what: 'the friends it opens', declarations: box('0px') },
   { component: 'MutualFriends', part: 'ts-mutual-friends-avatar', what: 'a friend\'s picture', declarations: { 'border-color': SOLID_EDGE } },
 
@@ -205,7 +218,7 @@ export const PARTS: Part[] = [
   { component: 'MediaGrid', part: 'ts-media-grid', what: 'the photos and their heading' },
   { component: 'MediaGrid', part: 'ts-media-heading', what: 'its heading', declarations: heading },
   { component: 'MediaGrid', part: 'ts-media-subtitle', what: 'the line under it', declarations: muted },
-  { component: 'MediaGrid', part: 'ts-media-view-all', what: '"View All"', declarations: button('6px') },
+  { component: 'MediaGrid', part: 'ts-media-view-all', what: '"View All"', kind: 'button', declarations: button('6px') },
   { component: 'MediaGrid', part: 'ts-media-item', what: 'one photo\'s frame', declarations: box('0px') },
   { component: 'MediaGrid', part: 'ts-media-more', what: 'the line under the photos', declarations: { color: INK } },
 
@@ -213,12 +226,12 @@ export const PARTS: Part[] = [
   { component: 'ProfileBadges', part: 'ts-badges', what: 'the badges and their heading' },
   { component: 'ProfileBadges', part: 'ts-badges-heading', what: 'its heading', declarations: heading },
   { component: 'ProfileBadges', part: 'ts-badges-subtitle', what: 'the line under it', declarations: muted },
-  { component: 'ProfileBadges', part: 'ts-badges-view-all', what: '"View Collection"', declarations: button('6px') },
+  { component: 'ProfileBadges', part: 'ts-badges-view-all', what: '"View Collection"', kind: 'button', declarations: button('6px') },
   { component: 'ProfileBadges', part: 'ts-badges-more', what: 'the lines under the badges', declarations: { color: INK } },
 
   // RevealBox
   { component: 'RevealBox', part: 'ts-reveal', what: 'the button and what it shows' },
-  { component: 'RevealBox', part: 'ts-reveal-button', what: 'the button', declarations: { ...button('4px'), border: `1px solid ${SOLID_EDGE}` } },
+  { component: 'RevealBox', part: 'ts-reveal-button', what: 'the button', kind: 'button', declarations: { ...button('4px'), border: `1px solid ${SOLID_EDGE}` } },
   { component: 'RevealBox', part: 'ts-reveal-link', what: 'the button, as a link (buttonStyle="link" or "minimal")', declarations: { color: INK, 'border-color': EDGE, 'font-family': FONT } },
   { component: 'RevealBox', part: 'ts-reveal-content', what: 'what it shows', declarations: { color: INK } },
 
@@ -245,7 +258,7 @@ export const PARTS: Part[] = [
   { component: 'Embed', part: 'ts-embed-placeholder', what: 'the box before Play', declarations: { ...box('4px'), 'box-shadow': 'none' } },
   { component: 'Embed', part: 'ts-embed-title', what: 'what\'s playing', declarations: { color: INK } },
   // .btn: two classes, to outweigh retro.css's .btn.btn--secondary like theme-parts.css's rule for it does
-  { component: 'Embed', part: 'ts-embed-button', what: 'Play', state: '.btn', declarations: button('6px') },
+  { component: 'Embed', part: 'ts-embed-button', what: 'Play', state: '.btn', kind: 'button', declarations: button('6px') },
 
   // PolaroidFrame and StickyNote keep their own paper; only the writing is a token
   { component: 'PolaroidFrame', part: 'ts-polaroid', what: 'the print' },
@@ -305,6 +318,12 @@ export function partsOf(component: string): PartDoc[] {
   return [...docs.values()];
 }
 
+/** Whether look="plain" takes anything away on it: it has a box, an edge or a shadow */
+export function hasPlainLook(component: string): boolean {
+  return PARTS.some((part) => part.component === component && (!part.state || !/^[:[]/.test(part.state))
+    && Object.keys(part.declarations ?? {}).some((property) => BOX_PROPERTIES.includes(property)));
+}
+
 /** The tokens a component's look reads, in the order TOKENS lists them */
 export function tokensReadBy(component: string): Token[] {
   const read = new Set(PARTS.filter((part) => part.component === component).flatMap((part) => Object.values(part.declarations ?? {}).flatMap(tokensIn)));
@@ -330,6 +349,36 @@ export function siteStylesOffCss(): string {
   }).join('\n');
 }
 
+/** The properties that make a part a box, which look="plain" takes away */
+const BOX_PROPERTIES = ['background', 'background-color', 'border-color', 'box-shadow'];
+
+/**
+ * look="plain" on a component (its <ts-island data-look="plain">,
+ * PageWithComponents): no boxes, edges or shadows, in it and in the
+ * components inside it. The tokens are off there, so a page's token rules
+ * go see-through too; the rules below take the site's look away. Two
+ * classes and a tag heavy, unlayered: they beat the site's look and the
+ * site-styles-off rules above, and a page's own rule on a part (prefixed
+ * to the same weight, and later) still beats them.
+ */
+export function plainLookCss(): string {
+  const scope = 'ts-island[data-look="plain"]';
+  const rules = PARTS.filter((part) => !part.state || !/^[:[]/.test(part.state))
+    .filter((part) => Object.keys(part.declarations ?? {}).some((property) => BOX_PROPERTIES.includes(property)))
+    .map((part) => {
+      // The outline only where the site draws one inside a frame: a focus ring stays
+      const body = [
+        'background: none',
+        'border-color: transparent',
+        'box-shadow: none',
+        ...('outline-color' in (part.declarations ?? {}) ? ['outline-color: transparent'] : []),
+        ...(part.kind === 'button' ? ['border-width: 0', 'padding: 0', 'text-shadow: none'] : []),
+      ];
+      return `/* ${part.component}: ${part.what} */\n${scope} .${part.part}${part.state ?? ''} {\n${body.map((line) => `  ${line};`).join('\n')}\n}`;
+    });
+  return `${scope} {\n  --ts-card: transparent;\n  --ts-edge: transparent;\n  --ts-shadow: none;\n}\n${rules.join('\n')}`;
+}
+
 /** The whole of styles/component-parts.css */
 export function componentPartsCssFile(): string {
   return `/*
@@ -343,6 +392,9 @@ export function componentPartsCssFile(): string {
  * and Tailwind's utilities, and any rule of the page's beats it.
  */
 ${siteStylesOffCss()}
+
+/* ---------- look="plain" ---------- */
+${plainLookCss()}
 `;
 }
 

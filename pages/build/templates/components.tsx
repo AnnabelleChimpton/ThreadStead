@@ -113,6 +113,12 @@ function PartsList({ doc }: { doc: ComponentDoc }) {
             </div>
           ))}
         </dl>
+        {doc.plain && (
+          <p className="m-0 text-thread-charcoal">
+            <code className="font-mono font-semibold text-thread-pine">look=&quot;plain&quot;</code> takes its boxes, edges and
+            shadows away.
+          </p>
+        )}
         {doc.drawsAlso && (
           <p className="m-0 text-thread-sage">
             It has the parts of{" "}

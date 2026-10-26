@@ -1,5 +1,6 @@
 // Type definitions and validation utilities for template registry
 import React from 'react';
+import { isLook } from '@/lib/templates/styling/component-parts';
 
 // Import new standardized component interfaces
 import {
@@ -356,6 +357,13 @@ export function validateAndCoerceProps(
       // The parser gives a class list as an array: one string, or a component
       // that writes `x ${className}` rendered "a,b" (template audit 06 #2)
       result[key] = key === 'className' && Array.isArray(value) ? value.join(' ') : value;
+      continue;
+    }
+
+    // look="plain" on any component: its island takes it (PageWithComponents)
+    if (key === 'look') {
+      if (isLook(value)) result.look = value;
+      else warnings.push(`Invalid prop look: ${String(value)}`);
       continue;
     }
 

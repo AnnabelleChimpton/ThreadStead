@@ -127,6 +127,11 @@ export default function CssGuide({ siteConfig, username }: CssGuideProps) {
                   </React.Fragment>
                 ))}
               </dl>
+              <p>
+                To take one component&apos;s boxes, edges and shadows away, write <code>look=&quot;plain&quot;</code> on it:{' '}
+                <code>&lt;Button look=&quot;plain&quot;&gt;</code> around a picture is just the picture. Components inside a
+                plain one go plain too.
+              </p>
               <p className="mb-0">
                 For anything more, each component has parts: classes like <code>.ts-guestbook-entry</code> that stay put.
                 The <Link href="/build/templates/components" className="underline text-thread-pine">component reference</Link>{' '}

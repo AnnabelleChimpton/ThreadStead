@@ -5,7 +5,7 @@
  */
 import fs from 'fs'
 import path from 'path'
-import { PARTS, TOKENS, componentPartsCssFile, tokenRulesFor, tokensSetIn } from '@/lib/templates/styling/component-parts'
+import { PARTS, TOKENS, componentPartsCssFile, plainLookCss, tokenRulesFor, tokensSetIn } from '@/lib/templates/styling/component-parts'
 import { transformAdvancedCss } from '@/lib/utils/css/css-transform'
 
 const ROOT = path.join(__dirname, '..', '..', '..')
@@ -58,5 +58,33 @@ describe('a page that sets a token', () => {
   test("a page that sets none gets none, and a name that isn't a token doesn't count", () => {
     expect(transformAdvancedCss('p { color: red }')).not.toContain('.ts-card')
     expect(tokensSetIn(':root { --ts-cards: red; --my-colour: blue }').size).toBe(0)
+  })
+})
+
+describe('look="plain"', () => {
+  const css = plainLookCss()
+  const rule = (selector: string) => css.slice(css.indexOf(`${selector} {`), css.indexOf('}', css.indexOf(`${selector} {`)))
+
+  test('turns the tokens off for the component and those inside it', () => {
+    expect(rule('ts-island[data-look="plain"]')).toContain('--ts-card: transparent')
+    expect(rule('ts-island[data-look="plain"]')).toContain('--ts-shadow: none')
+  })
+
+  test('a button loses its frame and padding, and keeps its focus ring', () => {
+    const button = rule('ts-island[data-look="plain"] .ts-button')
+    expect(button).toContain('border-width: 0')
+    expect(button).toContain('padding: 0')
+    expect(button).not.toContain('outline')
+  })
+
+  test('a card loses its box and the outline the site draws inside it, and keeps its padding', () => {
+    const card = rule('ts-island[data-look="plain"] .ts-card')
+    expect(card).toContain('background: none')
+    expect(card).toContain('outline-color: transparent')
+    expect(card).not.toContain('padding')
+  })
+
+  test('states like the chosen tab keep their marks', () => {
+    expect(css).not.toContain('[aria-selected')
   })
 })

@@ -215,3 +215,26 @@ test.each(Object.entries(DRAWS_ALSO))('%s draws the parts of the components the 
 test('children list no parts of their own', () => {
   expect(PARTS.filter((part) => CHILDREN.has(part.component))).toEqual([])
 })
+
+describe('look="plain"', () => {
+  const serverHtml = (source: string) => {
+    const a = compileTemplateToArtifacts(source)
+    const stored = JSON.parse(JSON.stringify({ mode: 'advanced', staticHTML: a.staticHTML, islands: a.islands, ast: a.ast }))
+    const compiled = pageForRender(stored, { isOwner: false })
+    const user = { id: OWNER_ID, handle: 'pat', profile: { templateMode: 'advanced' as const, compiledTemplate: compiled } }
+    return { warnings: a.warnings, html: renderToString(<AppProviders><AdvancedProfileRenderer user={user} residentData={richData(VISITOR)} /></AppProviders>) }
+  }
+
+  test('goes on any component, as its island\'s data-look, not on what the component draws', () => {
+    const { warnings, html } = serverHtml('<Button look="plain"><img src="https://example.com/go.png" alt="Go"></Button>\n<RetroCard look="plain" title="Hi"><p>x</p></RetroCard>')
+    expect(warnings).toEqual([])
+    expect(html.match(/<ts-island data-look="plain">/g)).toHaveLength(2)
+    expect(html).not.toMatch(/<(?!ts-island)[^>]*\blook=/)
+  })
+
+  test('another value is left out, and the owner hears why', () => {
+    const { warnings, html } = serverHtml('<p>Hi</p>\n<Button look="fancy">Go</Button>')
+    expect(warnings).toEqual(['Line 2: <Button look="fancy"> look takes "plain" (no boxes, edges or shadows), so it\'s left out.'])
+    expect(html).not.toContain('data-look')
+  })
+})

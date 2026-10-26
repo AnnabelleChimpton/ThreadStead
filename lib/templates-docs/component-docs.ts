@@ -9,7 +9,7 @@
  * /api/templates/component-schemas.
  */
 import type { ComponentRegistration, ComponentGroup, PropSchema } from '@/lib/templates/core/template-registry-types';
-import { partsOf, tokensReadBy, DRAWS_ALSO, type PartDoc } from '@/lib/templates/styling/component-parts';
+import { partsOf, tokensReadBy, hasPlainLook, DRAWS_ALSO, type PartDoc } from '@/lib/templates/styling/component-parts';
 
 export interface ComponentPropDoc {
   name: string;
@@ -44,6 +44,8 @@ export interface ComponentDoc {
   tokens?: string[];
   /** Other components drawn inside it, whose parts it has too */
   drawsAlso?: string[];
+  /** look="plain" takes its boxes, edges and shadows away */
+  plain?: boolean;
 }
 
 export interface ComponentGroupInfo {
@@ -132,11 +134,16 @@ export function componentDoc(registration: ComponentRegistration): ComponentDoc 
   };
 }
 
-function partsDoc(name: string): Pick<ComponentDoc, 'parts' | 'tokens' | 'drawsAlso'> {
+function partsDoc(name: string): Pick<ComponentDoc, 'parts' | 'tokens' | 'drawsAlso' | 'plain'> {
   const parts = partsOf(name);
   if (parts.length === 0) return {};
   const tokens = tokensReadBy(name);
-  return { parts, ...(tokens.length ? { tokens } : {}), ...(DRAWS_ALSO[name] ? { drawsAlso: [...DRAWS_ALSO[name]] } : {}) };
+  return {
+    parts,
+    ...(tokens.length ? { tokens } : {}),
+    ...(DRAWS_ALSO[name] ? { drawsAlso: [...DRAWS_ALSO[name]] } : {}),
+    ...(hasPlainLook(name) ? { plain: true } : {}),
+  };
 }
 
 /** Every registered component, in reference order: by group, connected ones first, featured ones first in each. */

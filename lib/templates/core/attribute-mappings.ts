@@ -380,7 +380,9 @@ export function getAllowedAttributes(): string[] {
   // Add common HTML attributes
   const commonAttrs = [
     'id', 'style', 'title', 'role', 'aria-label', 'aria-describedby',
-    'tabindex', 'data-testid', 'key'
+    'tabindex', 'data-testid', 'key',
+    // look="plain" on any component (lib/templates/styling/component-parts.ts)
+    'look'
   ];
   for (const attr of commonAttrs) {
     attributes.add(attr);
