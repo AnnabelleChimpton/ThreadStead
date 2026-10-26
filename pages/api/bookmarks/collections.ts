@@ -1,6 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { validationMessage } from '@/lib/api/validation';
+import { z } from 'zod';
+import { CollectionVisibility } from '@prisma/client';
+
+/** What pages/bookmarks sends; a name or visibility that wasn't text was a 500 */
+const collectionFields = {
+  name: z.string().trim().min(1, 'Give the collection a name.').max(100),
+  description: z.string().max(500).nullable().optional(),
+  visibility: z.enum(CollectionVisibility).optional(),
+};
+const createSchema = z.object(collectionFields);
+const updateSchema = z.object({ ...collectionFields, name: collectionFields.name.optional(), id: z.string().min(1).max(200) });
 
 export default apiHandler(
   { methods: ['GET', 'POST', 'PUT', 'DELETE'], auth: 'user' },
@@ -56,11 +68,9 @@ async function getCollections(req: NextApiRequest, res: NextApiResponse, userId:
 }
 
 async function createCollection(req: NextApiRequest, res: NextApiResponse, userId: string) {
-  const { name, description, visibility = 'private' } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: 'Collection name is required' });
-  }
+  const parsed = createSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+  const { name, description, visibility = 'private' } = parsed.data;
 
   // Check if collection name already exists for user
   const existing = await db.userCollection.findFirst({
@@ -100,11 +110,9 @@ async function createCollection(req: NextApiRequest, res: NextApiResponse, userI
 }
 
 async function updateCollection(req: NextApiRequest, res: NextApiResponse, userId: string) {
-  const { id, name, description, visibility } = req.body;
-
-  if (!id) {
-    return res.status(400).json({ error: 'Collection ID is required' });
-  }
+  const parsed = updateSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+  const { id, name, description, visibility } = parsed.data;
 
   // Verify ownership
   const collection = await db.userCollection.findFirst({

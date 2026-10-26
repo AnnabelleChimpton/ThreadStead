@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { isHttpUrl } from "@/lib/utils/validation/url";
 
 export interface Website {
   id: string;
@@ -59,14 +60,6 @@ export default function WebsiteManager({
     onChange(newWebsites);
   }
 
-  function isValidUrl(url: string): boolean {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -115,11 +108,11 @@ export default function WebsiteManager({
                         onChange={(e) => updateWebsite(website.id, { url: e.target.value })}
                         placeholder="https://example.com"
                         className={`border border-nb-ink-mid p-2 bg-white w-full ${
-                          website.url && !isValidUrl(website.url) ? 'border-red-500' : ''
+                          website.url && !isHttpUrl(website.url) ? 'border-red-500' : ''
                         }`}
                       />
-                      {website.url && !isValidUrl(website.url) && (
-                        <p className="text-red-600 text-xs mt-1">Please enter a valid URL</p>
+                      {website.url && !isHttpUrl(website.url) && (
+                        <p className="text-red-600 text-xs mt-1">A web address starting with https:// or http://</p>
                       )}
                     </div>
                   </div>
@@ -155,7 +148,7 @@ export default function WebsiteManager({
                   <div className="flex gap-2">
                     <button
                       onClick={() => setEditingId(null)}
-                      disabled={!website.label.trim() || !website.url.trim() || !isValidUrl(website.url)}
+                      disabled={!website.label.trim() || !website.url.trim() || !isHttpUrl(website.url)}
                       className="thread-button btn btn--primary text-sm disabled:opacity-50"
                     >
                       Done

@@ -1,35 +1,37 @@
+import { z } from 'zod';
+import { BookmarkSourceType, Prisma } from '@prisma/client';
 import { db } from '@/lib/config/database/connection';
 import { apiHandler } from '@/lib/api/handler';
+import { isHttpUrl } from '@/lib/utils/validation/url';
 
-interface SaveRequest {
-  url: string;
-  title: string;
-  description?: string;
-  sourceType: 'community_index' | 'site_content' | 'external_search' | 'manual';
-  sourceMetadata?: Record<string, any>;
-  collectionId?: string;
-  tags?: string[];
-  notes?: string;
-}
+/**
+ * What useBookmarks sends. The body was used as typed, not checked: any
+ * collectionId went in (someone else's collection too), any URL scheme,
+ * and fields of any size.
+ */
+const saveSchema = z.object({
+  url: z.string().trim().refine(isHttpUrl, 'That link needs to start with http:// or https://.'),
+  title: z.string().trim().min(1).max(300),
+  description: z.string().max(2000).optional(),
+  sourceType: z.enum(BookmarkSourceType),
+  sourceMetadata: z.record(z.string(), z.unknown())
+    .refine((meta) => JSON.stringify(meta).length <= 5000, 'Source metadata is too big.')
+    .optional(),
+  collectionId: z.string().max(200).optional(),
+  tags: z.array(z.string().trim().min(1).max(50)).max(20).optional(),
+  notes: z.string().max(2000).optional(),
+});
 
 export default apiHandler(
-  { methods: ['POST'], auth: 'user' },
-  async (req, res, { user }) => {
+  { methods: ['POST'], auth: 'user', schema: saveSchema },
+  async (req, res, { user, body }) => {
     try {
-      const {
-        url,
-        title,
-        description,
-        sourceType,
-        sourceMetadata,
-        collectionId,
-        tags = [],
-        notes
-      }: SaveRequest = req.body;
+      const { url, title, description, sourceType, sourceMetadata, collectionId, tags = [], notes } = body;
 
-      // Validate required fields
-      if (!url || !title || !sourceType) {
-        return res.status(400).json({ error: 'Missing required fields: url, title, sourceType' });
+      // Only into one of your own collections
+      if (collectionId) {
+        const mine = await db.userCollection.findFirst({ where: { id: collectionId, userId: user.id }, select: { id: true } });
+        if (!mine) return res.status(404).json({ error: "That collection isn't one of yours." });
       }
 
       // Check if already bookmarked
@@ -81,7 +83,7 @@ export default apiHandler(
           title,
           description,
           sourceType,
-          sourceMetadata,
+          sourceMetadata: sourceMetadata as Prisma.InputJsonValue | undefined,
           tags,
           notes
         },

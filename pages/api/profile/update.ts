@@ -13,6 +13,7 @@ import { notifyRingHubIfMember } from "@/lib/api/ringhub/ringhub-profile-sync";
 import { withCsrfProtection } from "@/lib/server/http/csrf";
 import { withRateLimit } from "@/lib/server/http/rate-limit";
 import { scheduleHomeSnapshot } from "@/lib/pixel-homes/snapshot/service";
+import { isHttpUrl } from "@/lib/utils/validation/url";
 
 
 
@@ -83,7 +84,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         typeof item === 'object' && 
         item !== null && 
         typeof (item as Record<string, unknown>).label === 'string' &&
-        typeof (item as Record<string, unknown>).url === 'string'
+        // A link on the page: web addresses only (Settings says so)
+        isHttpUrl(String((item as Record<string, unknown>).url).trim())
       )
       .slice(0, 10) // Max 10 websites
       .map(item => {
@@ -91,7 +93,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return {
           id: String(obj.id || Date.now()),
           label: String(obj.label).trim().slice(0, 50),
-          url: String(obj.url).trim().slice(0, 500),
+          url: String(obj.url).trim(),
           blurb: String(obj.blurb || "").trim().slice(0, 200),
           // "This is my site": the Indie Index lists it as this resident's own.
           ...(obj.mine === true ? { mine: true } : {})
