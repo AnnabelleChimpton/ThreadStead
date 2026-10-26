@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { createLandingPageSchema } from "@/lib/domain/beta/landing-requests";
 
 export default apiHandler(
   { methods: ["GET", "POST"], auth: "admin", rateLimit: "admin" },
@@ -40,19 +41,8 @@ export default apiHandler(
     }
 
     if (req.method === "POST") {
+      const { name, slug, title, description, content, signupLimit = 50 } = createLandingPageSchema.parse(req.body ?? {});
       try {
-        const { name, slug, title, description, content, signupLimit = 50 } = req.body;
-
-        if (!name || !slug || !title) {
-          return res.status(400).json({ error: "Name, slug, and title are required" });
-        }
-
-        // Validate slug format (alphanumeric, hyphens, underscores only)
-        if (!/^[a-z0-9-_]+$/.test(slug)) {
-          return res.status(400).json({
-            error: "Slug must contain only lowercase letters, numbers, hyphens, and underscores"
-          });
-        }
 
         // Check if slug already exists
         const existingPage = await db.betaLandingPage.findUnique({
@@ -70,7 +60,7 @@ export default apiHandler(
             title,
             description,
             content,
-            signupLimit: Math.max(1, signupLimit), // Ensure minimum of 1
+            signupLimit,
             createdBy: adminUser.id
           },
           include: {

@@ -1,19 +1,15 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { landingLimitSchema } from "@/lib/domain/beta/landing-requests";
 
 export default apiHandler(
-  { methods: ["PUT"], auth: "admin", rateLimit: "admin" },
-  async (req, res) => {
+  { methods: ["PUT"], auth: "admin", rateLimit: "admin", schema: landingLimitSchema },
+  async (req, res, { body }) => {
     const { id } = req.query;
-    const { signupLimit } = req.body;
-
     if (typeof id !== "string") {
       return res.status(400).json({ error: "Invalid landing page ID" });
     }
-
-    if (!signupLimit || signupLimit < 1) {
-      return res.status(400).json({ error: "Signup limit must be at least 1" });
-    }
+    const { signupLimit } = body;
 
     try {
       // Check if landing page exists

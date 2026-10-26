@@ -1,5 +1,6 @@
 import { db } from "@/lib/config/database/connection";
 import { apiHandler } from "@/lib/api/handler";
+import { updateLandingPageSchema } from "@/lib/domain/beta/landing-requests";
 
 export default apiHandler(
   { methods: ["GET", "PUT", "DELETE"], auth: "admin", rateLimit: "admin" },
@@ -50,19 +51,8 @@ export default apiHandler(
     }
 
     if (req.method === "PUT") {
+      const { name, slug, title, description, content, signupLimit, isActive, isPaused } = updateLandingPageSchema.parse(req.body ?? {});
       try {
-        const { name, slug, title, description, content, signupLimit, isActive, isPaused } = req.body;
-
-        if (!name || !slug || !title) {
-          return res.status(400).json({ error: "Name, slug, and title are required" });
-        }
-
-        // Validate slug format
-        if (!/^[a-z0-9-_]+$/.test(slug)) {
-          return res.status(400).json({
-            error: "Slug must contain only lowercase letters, numbers, hyphens, and underscores"
-          });
-        }
 
         // Check if slug is taken by another landing page
         const existingPage = await db.betaLandingPage.findFirst({
@@ -84,7 +74,7 @@ export default apiHandler(
           }
         });
 
-        const newSignupLimit = signupLimit !== undefined ? Math.max(1, signupLimit) : undefined;
+        const newSignupLimit = signupLimit;
         const limitReached = newSignupLimit !== undefined ? currentSignupCount >= newSignupLimit : undefined;
 
         const landingPage = await db.betaLandingPage.update({
@@ -97,8 +87,8 @@ export default apiHandler(
             content,
             ...(newSignupLimit !== undefined && { signupLimit: newSignupLimit }),
             ...(limitReached !== undefined && { limitReached }),
-            ...(isActive !== undefined && { isActive: Boolean(isActive) }),
-            ...(isPaused !== undefined && { isPaused: Boolean(isPaused) })
+            ...(isActive !== undefined && { isActive }),
+            ...(isPaused !== undefined && { isPaused })
           },
           include: {
             creator: {
