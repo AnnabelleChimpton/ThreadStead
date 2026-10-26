@@ -4,7 +4,8 @@
  * Rate limits on the guestbook and follows (subdomain-actions review):
  * reading a guestbook counts as a read, not against signing; signing has a
  * per-guestbook-per-person cap and a ceiling per guestbook; following has a
- * limit at all.
+ * limit at all. A note is plain text of 2000 characters at most, as the
+ * forms allow (any length went in before).
  */
 import type { NextApiRequest, NextApiResponse } from 'next'
 
@@ -80,6 +81,25 @@ test('over the cap, nothing is written and it says why', async () => {
   expect(res.statusCode).toBe(429)
   expect(res.body).toEqual({ error: "You've signed alice's guestbook a few times today. Try again tomorrow." })
   expect(db.guestbookEntry.create).not.toHaveBeenCalled()
+})
+
+test.each([
+  [{ message: 'x'.repeat(2001), cap: 'cap' }, 'Message is too long: 2000 characters at most.'],
+  [{ message: '   ', cap: 'cap' }, 'Write a note first.'],
+  [{ message: { text: 'hi' }, cap: 'cap' }, "Message isn't the right kind of value."],
+])('%#: a note the forms wouldn\'t send is a 400 and nothing is written', async (body, error) => {
+  const { db } = jest.requireMock('@/lib/config/database/connection')
+  const res = await call(guestbook, 'POST', body)
+  expect(res.statusCode).toBe(400)
+  expect(res.body).toEqual({ error })
+  expect(db.guestbookEntry.create).not.toHaveBeenCalled()
+})
+
+test('a note of 2000 characters goes in, trimmed', async () => {
+  const { db } = jest.requireMock('@/lib/config/database/connection')
+  const res = await call(guestbook, 'POST', { message: ` ${'x'.repeat(2000)} `, cap: 'cap' })
+  expect(res.statusCode).toBe(201)
+  expect(db.guestbookEntry.create.mock.calls[0][0].data.message).toBe('x'.repeat(2000))
 })
 
 test('following has a limit', async () => {

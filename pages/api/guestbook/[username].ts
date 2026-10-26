@@ -7,6 +7,14 @@ import { createGuestbookNotification } from "@/lib/domain/notifications";
 import { SITE_NAME } from "@/lib/config/site/constants";
 import { residentAccess, sendPrivateProfile } from "@/lib/domain/users/profile-access";
 import { limitIdentifier, rateLimitCheck } from "@/lib/server/http/rate-limit";
+import { validationMessage } from "@/lib/api/validation";
+import { z } from "zod";
+
+/** The forms cap a note at 2000 characters (Guestbook.tsx, pages/act/guestbook) */
+const signSchema = z.object({
+  message: z.string().trim().min(1, "Write a note first.").max(2000),
+  cap: z.string().max(5000).optional(),
+});
 
 
 export default apiHandler(
@@ -70,11 +78,11 @@ export default apiHandler(
     }
 
     // POST
-    const { message, cap } = req.body || {};
-    if (!message || typeof message !== "string" || !message.trim()) {
-      return res.status(400).json({ error: "message required" });
-    }
-    if (!cap || typeof cap !== "string") {
+    // Any length went in before, up to the body limit
+    const parsed = signSchema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ error: validationMessage(parsed.error.issues) });
+    const { message, cap } = parsed.data;
+    if (!cap) {
       return res.status(401).json({ error: "capability required" });
     }
 
@@ -105,7 +113,7 @@ export default apiHandler(
       data: {
         profileOwner: ownerHandle.user.id,
         authorId: ok.sub, // the userId from the cap
-        message: message.trim(),
+        message,
       },
     });
 

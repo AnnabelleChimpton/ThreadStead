@@ -259,6 +259,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
           <textarea
             className="ts-guestbook-field w-full border border-thread-sage p-3 bg-thread-paper rounded-cozy focus:border-thread-pine focus:ring-1 focus:ring-thread-pine resize-none"
             rows={3}
+            maxLength={2000}
             placeholder={config.guestbook_prompt}
             value={msg}
             onChange={(e) => setMsg(e.target.value)}
