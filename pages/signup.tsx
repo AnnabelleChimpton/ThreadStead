@@ -21,7 +21,7 @@ import {
 } from "@/lib/pixel-homes/house-choice";
 import imageCompression from 'browser-image-compression';
 import { avatarUploadsAsIs } from '@/lib/media/media-types';
-import { fetchAuthMe } from "@/hooks/useCurrentUser";
+import { fetchAuthMe, refreshAuthMe } from "@/hooks/useCurrentUser";
 import { unlockAudio } from "@/lib/audio/context";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
 import { requestCapability } from "@/lib/api/client/capability";
@@ -414,6 +414,8 @@ export default function SignupPage({ betaKey: urlBetaKey, betaRequired: isBetaEn
         setAccountCreated(true);
         setCurrentStep('seed-phrase');
       }
+      // The header says who they are from here on, not "Sign In"
+      refreshAuthMe().catch(() => {});
     } catch (e: unknown) {
       setError((e as Error).message || COPY.createFailed);
     } finally {

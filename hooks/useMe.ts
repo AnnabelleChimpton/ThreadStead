@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchAuthMe, peekAuthMe } from "./useCurrentUser";
+import { fetchAuthMe, peekAuthMe, subscribeAuthMe } from "./useCurrentUser";
 
 type Me = {
   loggedIn: boolean;
@@ -32,7 +32,8 @@ export function useMe() {
         if (alive) setMe({ loggedIn: false, isLoading: false });
       }
     })();
-    return () => { alive = false; };
+    const unsubscribe = subscribeAuthMe((data) => setMe({ ...data, isLoading: false } as Me));
+    return () => { alive = false; unsubscribe(); };
   }, []);
 
   return { me, isLoading: me.isLoading };

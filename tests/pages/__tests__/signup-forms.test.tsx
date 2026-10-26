@@ -26,10 +26,13 @@ jest.mock('@/lib/api/did/did-client', () => ({
     mnemonic: 'one two three four five six seven eight nine ten eleven twelve',
   })),
 }));
-jest.mock('@/hooks/useCurrentUser', () => ({ fetchAuthMe: jest.fn(async () => ({ loggedIn: false })) }));
+jest.mock('@/hooks/useCurrentUser', () => ({
+  fetchAuthMe: jest.fn(async () => ({ loggedIn: false })),
+  refreshAuthMe: jest.fn(async () => ({ loggedIn: true })),
+}));
 
 import { createNewIdentityWithPassword, createNewIdentityWithSeedPhrase } from '@/lib/api/did/did-client';
-import { fetchAuthMe } from '@/hooks/useCurrentUser';
+import { fetchAuthMe, refreshAuthMe } from '@/hooks/useCurrentUser';
 import SignupPage from '@/pages/signup';
 
 const siteConfig = { site_name: 'ThreadStead' } as React.ComponentProps<typeof SignupPage>['siteConfig'];
@@ -75,6 +78,8 @@ test('Return on the account form makes the account and focuses the email step he
 
   await waitFor(() => expect(createNewIdentityWithPassword).toHaveBeenCalledWith('newbie', 'Lawnchair42', undefined));
   const heading = await screen.findByRole('heading', { name: 'Add an email?' });
+  // The header stops saying "Sign In" now the account exists (signup audit #9)
+  expect(refreshAuthMe).toHaveBeenCalled();
   await waitFor(() => expect(heading).toHaveFocus());
   // Password users never hear about a recovery phrase
   expect(screen.queryByText(/recovery phrase/i)).toBeNull();

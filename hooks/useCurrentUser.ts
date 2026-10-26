@@ -48,6 +48,26 @@ export function invalidateAuthMe(): void {
   authMeCache = null;
 }
 
+// Mounted hooks, told when the signed-in state changes without a page load
+const listeners = new Set<(data: AuthMeData) => void>();
+
+export function subscribeAuthMe(listener: (data: AuthMeData) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/**
+ * Asks again and tells every mounted useMe/useCurrentUser: after signing
+ * up or in without a page load, the header stopped saying "Sign In" (it
+ * kept the answer from page load through the whole of signup; audit #9).
+ */
+export async function refreshAuthMe(): Promise<AuthMeData> {
+  invalidateAuthMe();
+  const data = await fetchAuthMe();
+  for (const listener of listeners) listener(data);
+  return data;
+}
+
 /**
  * Fetch /api/auth/me with a short-TTL cache and in-flight request dedupe.
  * All concurrent callers share one network request.
@@ -111,8 +131,14 @@ export function useCurrentUser(): UseCurrentUserResult {
       }
     })();
 
+    const unsubscribe = subscribeAuthMe((data) => {
+      setUser(data.loggedIn && data.user ? data.user : null);
+      setLoggedIn(!!(data.loggedIn && data.user));
+    });
+
     return () => {
       alive = false;
+      unsubscribe();
     };
   }, []);
 
