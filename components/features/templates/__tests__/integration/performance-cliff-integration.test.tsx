@@ -126,7 +126,7 @@ describe('Performance Cliff Edge Detection Integration', () => {
       
       const templates = [
         <GridLayout key="template-0" columns={2} gapSize="lg"><DisplayName /><Bio /></GridLayout>,
-        <div className="split-layout"><ProfilePhoto /><BlogPosts /></div>,
+        <div key="template-1" className="split-layout"><ProfilePhoto /><BlogPosts /></div>,
         <FlexContainer key="template-2" direction="column" gapSize="sm">
           <div className="gradient-box">
             <DisplayName />
@@ -314,7 +314,7 @@ describe('Performance Cliff Edge Detection Integration', () => {
       const complexTemplate = (
         <GridLayout columns={2} gapSize="lg">
           {Array.from({ length: 10 }, (_, i) => (
-            <div className="split-layout">
+            <div key={i} className="split-layout">
               <FlexContainer direction="column" gapSize="sm">
                 <ResourceComponent />
                 <DisplayName />

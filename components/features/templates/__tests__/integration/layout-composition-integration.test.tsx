@@ -349,7 +349,7 @@ describe('Layout Component Composition Integration', () => {
       const ComplexLayout = ({ rerenderTrigger }: { rerenderTrigger: number }) => (
         <GridLayout columns={2} gapSize="lg">
           {Array.from({ length: 4 }, (_, i) => (
-            <div className="split-layout">
+            <div key={i} className="split-layout">
               <FlexContainer direction="column" gapSize="sm">
                 <div className="gradient-box">
                   <div data-testid={`complex-content-${i}`}>
