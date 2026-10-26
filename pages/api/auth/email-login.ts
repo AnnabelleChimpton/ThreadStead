@@ -2,13 +2,15 @@ import { apiHandler } from "@/lib/api/handler";
 import { findUsersByEmail } from "@/lib/utils/security/email-encryption";
 import { createEmailLoginToken, sendLoginEmail, cleanupExpiredTokens } from "@/lib/email-login";
 import { emailSendLimitCheck } from "@/lib/server/http/rate-limit";
+import { sameSitePath } from "@/lib/utils/security/same-site-path";
+import { getSiteBaseUrl } from "@/lib/config/site-url";
 
 export default apiHandler(
   // CSRF off: signed-out visitors (login page) have no CSRF cookie; the same-origin check still applies
   { methods: ["POST"], auth: "none", csrf: false },
   async (req, res) => {
     try {
-      const { email, username } = req.body as { email?: string; username?: string };
+      const { email, username, next } = req.body as { email?: string; username?: string; next?: string };
     
       if (!email || typeof email !== 'string') {
         return res.status(400).json({ error: "Email is required" });
@@ -57,7 +59,9 @@ export default apiHandler(
       const token = await createEmailLoginToken(email);
     
       // Send email (always send, don't reveal if specific user exists)
-      await sendLoginEmail(email, mappedUsers, token);
+      // Where the link brings them back to, only ever a path on this site
+      const landing = typeof next === 'string' ? sameSitePath(next, new URL(getSiteBaseUrl()).origin) : null;
+      await sendLoginEmail(email, mappedUsers, token, landing);
     
       // Always return success to prevent user enumeration attacks
       res.json({ 

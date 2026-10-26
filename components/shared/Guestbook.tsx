@@ -1,7 +1,8 @@
 // components/Guestbook.tsx
 import React, { useEffect, useId, useRef, useState } from "react";
 import { useSiteConfig } from "@/hooks/useSiteConfig";
-import { mainSiteProfileUrl, useResidentHost } from "@/contexts/ResidentHostContext";
+import { useResidentHost } from "@/contexts/ResidentHostContext";
+import { actionUrl, onActionDone, openAction } from "@/lib/act/actions";
 import ImprovedBadgeDisplay from "./ImprovedBadgeDisplay";
 import { CommentMarkupWithEmojis } from "@/lib/comment-markup";
 import Link from "next/link";
@@ -48,6 +49,18 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
   const confirmDescId = useId();
   const cancelDeleteRef = useRef<HTMLButtonElement>(null);
 
+  // A note signed in a pop-up from here (lib/act/actions.ts): read the
+  // entries again and go to it
+  const [reloads, setReloads] = useState(0);
+  useEffect(() => {
+    if (!residentHost) return;
+    return onActionDone((done) => {
+      if (done.action !== "guestbook") return;
+      setReloads((n) => n + 1);
+      if (done.entryId) setTargetId(done.entryId);
+    });
+  }, [residentHost]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -68,7 +81,7 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
     return () => {
       alive = false;
     };
-  }, [username]);
+  }, [username, reloads]);
 
   // Check if current user is the profile owner
   useEffect(() => {
@@ -228,14 +241,16 @@ export default function Guestbook({ username, bio, signerLink = "profile", headi
       
       {residentHost ? (
         // Nobody is signed in on a resident's own address (it never sees a
-        // session), so the guestbook is signed on the main site
+        // session): signing happens on a page of the main site, and back
         <div className="mb-6">
-          <p className="text-sm mb-2">
-            You can read this guestbook here. Signing it happens on {config.site_name}.
-          </p>
-          <a href={mainSiteProfileUrl(residentHost, "guestbook")} className="thread-button inline-block">
-            Sign it on {config.site_name}
+          <a
+            href={actionUrl(residentHost.mainSiteUrl, "guestbook", username)}
+            onClick={(event) => openAction(event, residentHost.mainSiteUrl, "guestbook", username)}
+            className="thread-button inline-block"
+          >
+            Sign the guestbook<span className="sr-only"> (opens {config.site_name})</span>
           </a>
+          <p className="text-sm mt-2 mb-0">You&apos;ll sign on {config.site_name}, then come back here.</p>
         </div>
       ) : (
       <form onSubmit={onSubmit} className="mb-6">

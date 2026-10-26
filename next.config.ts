@@ -1,6 +1,31 @@
 import type { NextConfig } from "next";
 import { OLD_TUTORIALS } from "./lib/templates-docs/lessons";
 
+/** The site's CSP; `frameAncestors` says who may frame the page */
+function contentSecurityPolicy(frameAncestors: string): string {
+  return [
+    "default-src 'self'",
+    // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling. No analytics hosts: the site promises no tracking.
+    // wasm-unsafe-eval lets WebAssembly compile (not JS eval): the music sampler's audio thread
+    // starts its decoder before it will load any sound bank (lib/audio/engines/sampler.ts)
+    `script-src 'self' 'wasm-unsafe-eval' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline'`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline needed for styled-components/CSS-in-JS
+    // Fonts from any https host: a page's own @font-face (its Neocities pixel font) loads, like its images
+    "font-src 'self' https: data:",
+    "img-src 'self' https: data: blob:",
+    "media-src 'self' https: data:",
+    "connect-src 'self' https:",
+    "worker-src 'self' blob:",
+    // <Embed>'s players, loaded only after a visitor clicks (lib/templates/embeds.ts EMBED_HOSTS)
+    "frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://bandcamp.com https://w.soundcloud.com https://open.spotify.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    `frame-ancestors ${frameAncestors}`,
+    "upgrade-insecure-requests",
+  ].join('; ');
+}
+
 const nextConfig: NextConfig = {
   // A second dev server in this checkout (e.g. a preview on another port)
   // must not share .next with the first, or each rebuild breaks the other.
@@ -358,28 +383,21 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              // unsafe-inline needed for Next.js, unsafe-eval only for dev tooling. No analytics hosts: the site promises no tracking.
-              // wasm-unsafe-eval lets WebAssembly compile (not JS eval): the music sampler's audio thread
-              // starts its decoder before it will load any sound bank (lib/audio/engines/sampler.ts)
-              `script-src 'self' 'wasm-unsafe-eval' ${process.env.NODE_ENV !== 'production' ? "'unsafe-eval' " : ''}'unsafe-inline'`,
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline needed for styled-components/CSS-in-JS
-              // Fonts from any https host: a page's own @font-face (its Neocities pixel font) loads, like its images
-              "font-src 'self' https: data:",
-              "img-src 'self' https: data: blob:",
-              "media-src 'self' https: data:",
-              "connect-src 'self' https:",
-              "worker-src 'self' blob:",
-              // <Embed>'s players, loaded only after a visitor clicks (lib/templates/embeds.ts EMBED_HOSTS)
-              "frame-src 'self' https://www.youtube-nocookie.com https://player.vimeo.com https://bandcamp.com https://w.soundcloud.com https://open.spotify.com",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'self'",
-              "upgrade-insecure-requests",
-            ].join('; '),
+            value: contentSecurityPolicy("'self'"),
           },
+        ],
+      },
+      // Signing a guestbook or following someone from a resident's own
+      // address (lib/act/actions.ts): nobody may frame these pages (a
+      // resident's CSS could hide one and steer clicks), the pop-up is cut
+      // off from the page that opened it, and nothing is kept
+      {
+        source: '/act/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy("'none'") },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cache-Control', value: 'no-store' },
         ],
       },
     ];

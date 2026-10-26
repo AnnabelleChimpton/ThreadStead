@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Image from "next/image";
 import Layout from "@/components/ui/layout/Layout";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { sameSitePath } from '@/lib/utils/security/same-site-path';
 
 interface User {
   id: string;
@@ -23,6 +24,12 @@ export default function EmailVerifyPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
+
+  // Back to where they were signing in from (?next=, a path on this site only)
+  const landing = useCallback(() => {
+    const next = typeof router.query.next === 'string' ? router.query.next : '';
+    return sameSitePath(next, window.location.origin) ?? '/';
+  }, [router.query.next]);
 
   const verifyToken = useCallback(async () => {
     try {
@@ -45,7 +52,7 @@ export default function EmailVerifyPage() {
           // Single user or selection made - redirect
           setSuccess(true);
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = landing();
           }, 2000);
         }
       } else {
@@ -57,7 +64,7 @@ export default function EmailVerifyPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, landing]);
 
   useEffect(() => {
     if (token && typeof token === 'string') {
@@ -81,7 +88,7 @@ export default function EmailVerifyPage() {
         if (data.success) {
           setSuccess(true);
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = landing();
           }, 2000);
         }
       } else {

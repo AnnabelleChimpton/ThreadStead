@@ -1,7 +1,9 @@
 // components/FollowButton.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { csrfFetch } from "@/lib/api/client/csrf-fetch";
-import { mainSiteProfileUrl, useResidentHost } from "@/contexts/ResidentHostContext";
+import { useResidentHost } from "@/contexts/ResidentHostContext";
+import { actionUrl, openAction } from "@/lib/act/actions";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 
 type Rel = "loading" | "anon" | "owner" | "none" | "following" | "followed_by" | "friends";
 
@@ -17,6 +19,7 @@ export default function FollowButton({
   buttonClassName?: string;
 }) {
   const residentHost = useResidentHost();
+  const { config } = useSiteConfig();
   const [status, setStatus] = useState<Rel>("loading");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -63,11 +66,16 @@ export default function FollowButton({
   if (status === "loading") return <div className="text-sm opacity-70">…</div>;
   if (status === "owner") return null;
   if (status === "anon") {
-    // On their own address nobody's signed in: following happens on the main site
+    // On their own address nobody's signed in: following happens on a page
+    // of the main site (lib/act/actions.ts), which shows the result
     if (residentHost) {
       return (
-        <a href={mainSiteProfileUrl(residentHost)} className={`thread-button text-sm ${buttonClassName}`}>
-          Follow
+        <a
+          href={actionUrl(residentHost.mainSiteUrl, "follow", username)}
+          onClick={(event) => openAction(event, residentHost.mainSiteUrl, "follow", username)}
+          className={`thread-button text-sm ${buttonClassName}`}
+        >
+          Follow {username}<span className="sr-only"> (opens {config.site_name})</span>
         </a>
       );
     }

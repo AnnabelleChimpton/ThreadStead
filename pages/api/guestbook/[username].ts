@@ -142,6 +142,7 @@ export default apiHandler(
       authorUsername: entry.authorId ? userHandleMap.get(entry.authorId) || null : null
     }));
 
-    return res.status(201).json({ entries: transformedEntries });
+    // entry: the one just signed, for the way back to it (pages/act/guestbook)
+    return res.status(201).json({ entries: transformedEntries, entry: { id: entry.id } });
   }
 );

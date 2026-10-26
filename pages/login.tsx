@@ -94,9 +94,11 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/email-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           email: emailInput.trim(),
-          username: usernameInput.trim()
+          username: usernameInput.trim(),
+          // The emailed link comes back here too (the guestbook they were signing)
+          ...(typeof router.query.next === 'string' && { next: router.query.next }),
         })
       });
 

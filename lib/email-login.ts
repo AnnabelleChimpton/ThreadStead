@@ -211,11 +211,13 @@ export async function verifyPasswordResetToken(token: string): Promise<{ userId:
 }
 
 /**
- * Send login email with magic link
+ * Send login email with magic link. `next`: a path on this site to land on
+ * after signing in (checked by the caller), e.g. the guestbook they were
+ * signing from someone's own address.
  */
-export async function sendLoginEmail(email: string, users: EmailLoginUser[], token: string): Promise<void> {
+export async function sendLoginEmail(email: string, users: EmailLoginUser[], token: string, next?: string | null): Promise<void> {
   const baseUrl = getSiteBaseUrl();
-  const loginUrl = `${baseUrl}/auth/email-verify?token=${token}`;
+  const loginUrl = `${baseUrl}/auth/email-verify?token=${token}${next ? `&next=${encodeURIComponent(next)}` : ''}`;
 
   const fromEmail = process.env.RESEND_FROM_EMAIL;
   if (!fromEmail) {

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Done</title>
+<!--
+  The end of signing a guestbook or following someone in a pop-up, opened
+  from a resident's own address (lib/act/actions.ts). It runs on that
+  address, so it can tell the page still open there (a BroadcastChannel is
+  per address), then closes. If the browser won't let it close, it shows
+  the page itself. It only says what was done: the page re-reads public data.
+-->
+<style>body { font: 16px/1.5 Georgia, serif; margin: 2rem; color: #2f2a24; background: #fbf7ef; }</style>
+</head>
+<body>
+<p>Done. Taking you back…</p>
+<script>
+(function () {
+  var hash = location.hash.slice(1);
+  var match = /^(guestbook|follow)(?:=([\w-]{1,64}))?$/.exec(hash);
+  var action = match ? match[1] : null;
+  var entryId = match && match[2] ? match[2] : undefined;
+  if (action && typeof BroadcastChannel !== 'undefined') {
+    var channel = new BroadcastChannel('ts-act');
+    channel.postMessage({ type: 'act-done', action: action, entryId: entryId });
+    channel.close();
+  }
+  window.close();
+  // Still open: the browser kept this window, so show the page in it
+  setTimeout(function () {
+    location.replace('/' + (action === 'guestbook' && entryId ? '#guestbook-entry-' + entryId : ''));
+  }, 400);
+})();
+</script>
+</body>
+</html>
