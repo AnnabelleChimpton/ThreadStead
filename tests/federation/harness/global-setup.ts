@@ -133,8 +133,10 @@ export default async function globalSetup(): Promise<void> {
   //    (loopback did:web resolves over plain http). itest1 is the main actor;
   //    itest2 is a second member for owner-side member management; itest3 is
   //    a hub admin (Actor.isAdmin), the role ThreadStead's own DID plays.
+  //    itest4's key gets replaced mid-test (key-rotation.itest.ts), through
+  //    the control route below.
   const didPort = await freePort()
-  const actors = ['itest1', 'itest2', 'itest3'].map((name) => {
+  const actors = ['itest1', 'itest2', 'itest3', 'itest4'].map((name) => {
     const keys = generateTestKeys()
     const did = `did:web:localhost%3A${didPort}:users:${name}`
     const document = {
@@ -164,6 +166,23 @@ export default async function globalSetup(): Promise<void> {
     return { name, did, keys, document }
   })
   const didServer = http.createServer((req, res) => {
+    // Test-only: POST /control/<name>/key {publicKeyBase64} replaces that
+    // actor's published key, as ThreadStead does when a resident's key changes
+    const control = /^\/control\/([^/]+)\/key$/.exec(req.url ?? '')
+    if (control && req.method === 'POST') {
+      let body = ''
+      req.on('data', (chunk) => (body += chunk))
+      req.on('end', () => {
+        const target = actors.find((a) => a.name === control[1])
+        if (!target) {
+          res.statusCode = 404
+          return res.end('not found')
+        }
+        target.document.verificationMethod[0].publicKeyBase64 = JSON.parse(body).publicKeyBase64
+        res.end('ok')
+      })
+      return
+    }
     const actor = actors.find((a) => req.url === `/users/${a.name}/did.json` || req.url === `/users/${a.name}/profile`)
     if (actor && req.url!.endsWith('/did.json')) {
       res.setHeader('content-type', 'application/json')
@@ -193,7 +212,7 @@ export default async function globalSetup(): Promise<void> {
       },
     })
   }
-  const [mainActor, secondActor, adminActor] = actors
+  const [mainActor, secondActor, adminActor, rotatingActor] = actors
 
   // A signer the hub can NEVER resolve: not seeded, and its did:web host
   // doesn't exist — reproduces the prod "Unknown key" failure.
@@ -241,6 +260,9 @@ export default async function globalSetup(): Promise<void> {
     secondPrivateKeyBase64Url: secondActor.keys.privateKeyBase64Url,
     adminActorDid: adminActor.did,
     adminPrivateKeyBase64Url: adminActor.keys.privateKeyBase64Url,
+    rotatingActorDid: rotatingActor.did,
+    rotatingPrivateKeyBase64Url: rotatingActor.keys.privateKeyBase64Url,
+    didServerUrl: `http://127.0.0.1:${didPort}`,
     unresolvableActorDid: 'did:web:unresolvable.invalid:users:ghost',
     unresolvablePrivateKeyBase64Url: unresolvableKeys.privateKeyBase64Url,
     // The client requires SOME multibase value but never uses it for signing.

@@ -22,6 +22,10 @@ export interface FederationRuntime {
   /** A hub admin (Actor.isAdmin): may act on rings it doesn't own. */
   adminActorDid: string
   adminPrivateKeyBase64Url: string
+  /** Its key gets replaced mid-test, through the DID server's control route */
+  rotatingActorDid: string
+  rotatingPrivateKeyBase64Url: string
+  didServerUrl: string
   unresolvableActorDid: string
   unresolvablePrivateKeyBase64Url: string
   ringSlug: string
