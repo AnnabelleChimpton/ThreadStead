@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import LoadingSpinner from '@/components/ui/feedback/LoadingSpinner';
 import { useToast } from '@/contexts/ToastContext';
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { csrfFetch } from '@/lib/api/client/csrf-fetch';
+import { errorOf, hostOf, Snippet, useSites, type SiteRow, type SitesData } from './site-shared';
 
 /**
  * Settings → Your sites: residents' sites elsewhere as their stops in their
@@ -12,66 +13,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
  * yours, then pick the rings it's your stop in.
  */
 
-type SiteState = 'pending' | 'verified' | 'resting' | 'removed';
-type StopStatus = 'listed' | 'pending' | 'hidden';
-
-interface SiteRow {
-  id: string;
-  url: string;
-  stripPageUrl: string | null;
-  title: string | null;
-  state: SiteState;
-  verifyMethod: 'strip' | 'relme' | 'meta' | null;
-  lastCheckedAt: string | null;
-  lastError: string | null;
-  restingSince: string | null;
-  clicksThisMonth: number;
-  stops: Array<{ ringSlug: string; status: StopStatus; reason: string | null }>;
-}
-
-interface SitesData {
-  max: number;
-  metaName: string;
-  profileUrl: string | null;
-  rings: Array<{ slug: string; name: string }> | null;
-  sites: SiteRow[];
-}
-
-function hostOf(url: string): string {
-  try {
-    const u = new URL(url);
-    return (u.host + u.pathname).replace(/^www\./, '').replace(/\/$/, '');
-  } catch {
-    return url;
-  }
-}
-
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-async function errorOf(res: Response, fallback: string): Promise<string> {
-  const body = await res.json().catch(() => null);
-  return (body && typeof body.error === 'string' && body.error) || fallback;
-}
-
-function Snippet({ code }: { code: string }) {
-  const { showSuccess } = useToast();
-  return (
-    <div className="flex items-start gap-2">
-      <pre className="flex-1 min-w-0 m-0 bg-nb-surface border border-nb-ink-mid/40 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap break-all">{code}</pre>
-      <Button
-        variant="secondary"
-        size="sm"
-        className="thread-button-secondary flex-shrink-0"
-        onClick={() => {
-          navigator.clipboard.writeText(code);
-          showSuccess('Copied.');
-        }}
-      >
-        Copy
-      </Button>
-    </div>
-  );
-}
 
 function stateLine(site: SiteRow): string {
   switch (site.state) {
@@ -201,12 +143,12 @@ function SiteCard({ site, data, reload }: { site: SiteRow; data: SitesData; relo
           </div>
           <div>
             <div className="font-semibold text-nb-ink mb-1">Or this tag, inside your page&apos;s &lt;head&gt;</div>
-            <Snippet code={`<meta name="${data.metaName}" content="${site.id}">`} />
+            <Snippet code={`<meta name="${data.metaName}" content="${site.id}">`} label="Copy the tag" />
           </div>
           {data.profileUrl && (
             <div>
               <div className="font-semibold text-nb-ink mb-1">Or a rel=&quot;me&quot; link to your profile here</div>
-              <Snippet code={`<a rel="me" href="${data.profileUrl}">me on HomePageAgain</a>`} />
+              <Snippet code={`<a rel="me" href="${data.profileUrl}">me on HomePageAgain</a>`} label="Copy the link" />
             </div>
           )}
           <div>
@@ -290,25 +232,16 @@ function SiteCard({ site, data, reload }: { site: SiteRow; data: SitesData; relo
 
 export default function YourSites() {
   const { showSuccess, showError } = useToast();
-  const [data, setData] = useState<SitesData | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { data, failed, reload } = useSites();
   const [url, setUrl] = useState('');
   const [adding, setAdding] = useState(false);
 
-  const reload = useCallback(async () => {
-    try {
-      const res = await fetch('/api/sites');
-      if (!res.ok) throw new Error(String(res.status));
-      setData(await res.json());
-      setFailed(false);
-    } catch {
-      setFailed(true);
-    }
-  }, []);
-
+  // #site-<id> (from /build/bring-your-site): the cards only exist once the list has loaded
+  const loaded = !!data;
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (!loaded || !window.location.hash.startsWith('#site-')) return;
+    document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: 'start' });
+  }, [loaded]);
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();

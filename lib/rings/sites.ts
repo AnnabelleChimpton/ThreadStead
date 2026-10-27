@@ -182,10 +182,9 @@ export async function lookForProof(
   }
   const method = findProof(res.body, res.url, { siteId: site.id, baseUrl, profileUrls })
   if (!method) {
-    return {
-      ok: false,
-      reason: site.stripPageUrl ? "I didn't find your strip or tag on that page." : "I didn't find your strip or tag on your homepage.",
-    }
+    // Names the page it read, and all three proofs: Settings offers each
+    const shown = page.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    return { ok: false, reason: `I looked at ${shown} and didn't find your tag, link or strip there.` }
   }
   return { ok: true, method, title: extractHead(res.body, res.url).title }
 }

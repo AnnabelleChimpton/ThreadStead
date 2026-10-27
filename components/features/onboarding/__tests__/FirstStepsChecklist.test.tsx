@@ -92,4 +92,16 @@ describe('FirstStepsChecklist', () => {
     await renderList(<FirstStepsChecklist username="newbie" steps={none} foundersNote="Glad you're here." />);
     expect(screen.getByText("Glad you're here.")).toBeInTheDocument();
   });
+
+  it('offers to bring a site along, leads back while it waits to be proved, and stops once proved', async () => {
+    mockRings([]);
+    const { rerender } = await renderList(<FirstStepsChecklist username="newbie" steps={{ ...none, ownSite: { state: 'none' } }} />);
+    expect(screen.getByText('Bring it with you').closest('a')).toHaveAttribute('href', '/build/bring-your-site');
+    rerender(<FirstStepsChecklist username="newbie" steps={{ ...none, ownSite: { state: 'waiting', url: 'https://sam.neocities.org/' } }} />);
+    expect(screen.getByText(/You added sam\.neocities\.org/)).toBeInTheDocument();
+    expect(screen.getByText('Finish bringing it here').closest('a')).toHaveAttribute('href', '/build/bring-your-site');
+    rerender(<FirstStepsChecklist username="newbie" steps={{ ...none, ownSite: { state: 'proved', url: 'https://sam.neocities.org/' } }} />);
+    expect(screen.queryByText('Bring it with you')).not.toBeInTheDocument();
+    expect(screen.queryByText('Finish bringing it here')).not.toBeInTheDocument();
+  });
 });

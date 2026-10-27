@@ -10,11 +10,12 @@ jest.mock('@/lib/config/database/connection', () => ({
     guestbookEntry: { findFirst: jest.fn() },
     profile: { findUnique: jest.fn() },
     profileTemplateRevision: { findFirst: jest.fn() },
+    externalSite: { findMany: jest.fn() },
   },
 }));
 
 import { db as realDb } from '@/lib/config/database/connection';
-import { getFirstSteps, housePicked, FIRST_STEPS_MAX_AGE_DAYS, OWN_PAGE_SAVE_TRIGGERS } from '../first-steps';
+import { getFirstSteps, housePicked, ownSiteOf, FIRST_STEPS_MAX_AGE_DAYS, OWN_PAGE_SAVE_TRIGGERS } from '../first-steps';
 
 const db = realDb as unknown as Record<string, Record<string, jest.Mock>>;
 
@@ -32,6 +33,7 @@ function newcomer({
   pageSave = null as { id: string } | null,
   // Someone else's latest public post, for the guestbook step
   latest = null as { author: { primaryHandle: string | null } } | null,
+  sites = [] as Array<{ url: string; state: string }>,
 } = {}) {
   db.user.findUnique.mockResolvedValue({ createdAt });
   db.userHomeConfig.findUnique.mockResolvedValue(config);
@@ -43,6 +45,7 @@ function newcomer({
   db.guestbookEntry.findFirst.mockResolvedValue(signed);
   db.profile.findUnique.mockResolvedValue(profile);
   db.profileTemplateRevision.findFirst.mockResolvedValue(pageSave);
+  db.externalSite.findMany.mockResolvedValue(sites);
 }
 
 beforeEach(() => jest.clearAllMocks());
@@ -62,10 +65,23 @@ describe('housePicked', () => {
   });
 });
 
+describe('ownSiteOf', () => {
+  it('prefers a proved site (resting still counts) over a newer one waiting', () => {
+    expect(ownSiteOf([
+      { url: 'https://new.neocities.org/', state: 'pending' },
+      { url: 'https://old.neocities.org/', state: 'resting' },
+    ])).toEqual({ state: 'proved', url: 'https://old.neocities.org/' });
+  });
+
+  it("doesn't count removed sites", () => {
+    expect(ownSiteOf([{ url: 'https://gone.neocities.org/', state: 'removed' }])).toEqual({ state: 'none' });
+  });
+});
+
 describe('getFirstSteps', () => {
   it('starts with nothing done for a brand-new account', async () => {
     newcomer();
-    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: false, yard: false, post: false, guestbook: false, page: false, neighbor: null });
+    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: false, yard: false, post: false, guestbook: false, page: false, neighbor: null, ownSite: { state: 'none' } });
   });
 
   it('ticks each item from the matching data', async () => {
@@ -76,7 +92,12 @@ describe('getFirstSteps', () => {
       signed: { id: 'g1' },
       pageSave: { id: 'r1' },
     });
-    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: true, yard: true, post: true, guestbook: true, page: true, neighbor: null });
+    await expect(getFirstSteps('u1', NOW)).resolves.toEqual({ house: true, yard: true, post: true, guestbook: true, page: true, neighbor: null, ownSite: { state: 'none' } });
+  });
+
+  it('knows whether their own site is still waiting to be proved', async () => {
+    newcomer({ sites: [{ url: 'https://sam.neocities.org/', state: 'pending' }] });
+    expect((await getFirstSteps('u1', NOW))?.ownSite).toEqual({ state: 'waiting', url: 'https://sam.neocities.org/' });
   });
 
   it("counts the page as theirs once they've saved a look over signup's", async () => {

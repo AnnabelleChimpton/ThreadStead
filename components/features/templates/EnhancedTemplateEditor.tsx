@@ -1721,15 +1721,24 @@ export default function EnhancedTemplateEditor({
   // asked for the first time the starter pages are open
   const [ownSites, setOwnSites] = useState<Array<{ id: string; address: string; ref?: string }> | null>(null);
   const [bringingIn, setBringingIn] = useState(false);
+  const [ownSitesFailed, setOwnSitesFailed] = useState(false);
   // and when the page has whole addresses, which may be on one of them
   const hasWholeAddresses = !useStandardLayout && /https?:\/\//.test(template);
+  // ?bring=<site id>: "Bring it in" on /build/bring-your-site
+  const bringId = typeof router.query.bring === 'string' ? router.query.bring : null;
   useEffect(() => {
-    if ((activeTab !== 'starters' && !hasWholeAddresses) || ownSites) return;
+    if ((activeTab !== 'starters' && !hasWholeAddresses && !bringId) || ownSites) return;
     fetch('/api/sites/import', { credentials: 'include' })
-      .then((response) => (response.ok ? response.json() : { sites: [] }))
+      .then((response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json();
+      })
       .then((data) => setOwnSites(Array.isArray(data.sites) ? data.sites : []))
-      .catch(() => setOwnSites([]));
-  }, [activeTab, ownSites, hasWholeAddresses]);
+      .catch(() => {
+        setOwnSitesFailed(true);
+        setOwnSites([]);
+      });
+  }, [activeTab, ownSites, hasWholeAddresses, bringId]);
 
   // The site's homepage, its own CSS and pictures and links still coming from
   // the site, in place of what's in the HTML tab (lib/templates/editor/site-import.ts)
@@ -1752,6 +1761,29 @@ export default function EnhancedTemplateEditor({
       setBringingIn(false);
     }
   };
+
+  // Once, when the editor opens from ?bring=: the param goes, so a reload
+  // doesn't bring it in over whatever they've done since. Not over an unsaved
+  // draft waiting to be restored: they choose, then bring it in from Starter pages.
+  const broughtIn = useRef(false);
+  useEffect(() => {
+    if (!bringId || !ownSites || broughtIn.current) return;
+    broughtIn.current = true;
+    const { bring: _bring, ...rest } = router.query;
+    void router.replace({ pathname: router.pathname, query: rest }, undefined, { shallow: true });
+    const site = ownSites.find((s) => s.id === bringId);
+    if (ownSitesFailed) {
+      setSaveMessage({ text: "I couldn't bring your site in just now. Try again from Starter pages.", tone: 'error' });
+    } else if (!site) {
+      setSaveMessage({ text: "I couldn't find that site among your proved ones.", tone: 'error' });
+    } else if (pendingDraft) {
+      setActiveTab('starters');
+      setSaveMessage({ text: 'You have unsaved work from before. Restore or discard it, then bring your site in here.', tone: 'warn' });
+    } else {
+      void bringIn(site);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bringId, ownSites]);
 
   // The sites' keys, to tell which of the page's pictures are on them
   const ownSiteRefs = React.useMemo(() => new Set((ownSites ?? []).map((site) => site.ref).filter((ref): ref is string => !!ref)), [ownSites]);
@@ -2173,7 +2205,7 @@ body {
               </>
             ) : (
               <p className="m-0 text-nb-ink-mid">
-                Have a site somewhere else, like Neocities? <Link href="/settings?tab=sites" className="underline">Add it in Settings</Link>, and you can bring its page in here.
+                Have a site somewhere else, like Neocities? <Link href="/build/bring-your-site" className="underline">Bring it with you</Link>.
               </p>
             )}
           </div>

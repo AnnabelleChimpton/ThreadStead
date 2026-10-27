@@ -303,7 +303,74 @@ describe('Bring in my page from my site (Starter pages)', () => {
     expect(css).toBe('h1 { color: crimson; }')
   })
 
-  it('with no verified site, points to Settings', async () => {
+  // The editor as /build/bring-your-site's "Bring it in" opens it: ?bring=<site id>
+  async function openWithBring(bring: string, { sitesOk = true }: { sitesOk?: boolean } = {}) {
+    const routerModule = jest.requireMock('next/router')
+    const realUseRouter = routerModule.useRouter
+    const replace = jest.fn().mockResolvedValue(true)
+    const query = { username: 'pat', bring }
+    routerModule.useRouter = () => ({ ...realUseRouter(), pathname: '/resident/[username]/template-editor', query, replace })
+    const posts: unknown[] = []
+    global.fetch = jest.fn(async (url: string, init?: { method?: string; body?: string }) => {
+      if (String(url).includes('/api/sites/import')) {
+        if (init?.method === 'POST') {
+          posts.push(JSON.parse(init.body!))
+          return { ok: true, status: 200, json: async () => ({ html: pasted('', '') }) }
+        }
+        return sitesOk
+          ? { ok: true, status: 200, json: async () => ({ sites: [{ id: 's1', address: 'pat.neocities.org' }] }) }
+          : { ok: false, status: 503, json: async () => ({}) }
+      }
+      return { ok: true, status: 200, json: async () => ({ success: true, compiled: { islands: [] } }) }
+    }) as unknown as typeof fetch
+    try {
+      render(
+        <ToastProvider>
+          <EnhancedTemplateEditor user={user} initialTemplate="<p>before</p>" initialTemplateMode="advanced" initialEditorMode="template" onSave={jest.fn()} />
+        </ToastProvider>
+      )
+      await waitFor(() => expect(replace).toHaveBeenCalled())
+    } finally {
+      routerModule.useRouter = realUseRouter
+    }
+    return { posts, replace }
+  }
+
+  it('?bring=<site id> brings that site in on its own, once, and drops the param', async () => {
+    const { posts, replace } = await openWithBring('s1')
+    await waitFor(() => expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).toContain('<p>hello</p>'))
+    expect(posts).toEqual([{ id: 's1' }])
+    expect(replace).toHaveBeenCalledWith({ pathname: '/resident/[username]/template-editor', query: { username: 'pat' } }, undefined, { shallow: true })
+  })
+
+  it("?bring= with a site that isn't one of your proved ones says so and brings nothing in", async () => {
+    const { posts } = await openWithBring('someone-elses')
+    expect(await screen.findByText("I couldn't find that site among your proved ones.")).toBeInTheDocument()
+    expect(posts).toEqual([])
+    expect((screen.getByLabelText('template-code') as HTMLTextAreaElement).value).toContain('<p>before</p>')
+  })
+
+  it("?bring= when your sites can't be loaded says to try again, not that the site isn't proved", async () => {
+    const { posts } = await openWithBring('s1', { sitesOk: false })
+    expect(await screen.findByText("I couldn't bring your site in just now. Try again from Starter pages.")).toBeInTheDocument()
+    expect(posts).toEqual([])
+  })
+
+  it('?bring= leaves an unsaved draft alone and points to Starter pages', async () => {
+    window.localStorage.setItem(
+      `threadstead:draft:template-editor:${user.id}`,
+      JSON.stringify({ data: { template: '<p>my draft</p>' }, savedAt: Date.now() })
+    )
+    try {
+      const { posts } = await openWithBring('s1')
+      expect(await screen.findByText('You have unsaved work from before. Restore or discard it, then bring your site in here.')).toBeInTheDocument()
+      expect(posts).toEqual([])
+    } finally {
+      window.localStorage.clear()
+    }
+  })
+
+  it('with no verified site, points to Bring your site', async () => {
     global.fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ sites: [] }) })) as unknown as typeof fetch
     render(
       <ToastProvider>
@@ -311,6 +378,6 @@ describe('Bring in my page from my site (Starter pages)', () => {
       </ToastProvider>
     )
     fireEvent.click(screen.getByRole('tab', { name: 'Starter pages' }))
-    expect(await screen.findByRole('link', { name: 'Add it in Settings' })).toHaveAttribute('href', '/settings?tab=sites')
+    expect(await screen.findByRole('link', { name: 'Bring it with you' })).toHaveAttribute('href', '/build/bring-your-site')
   })
 })

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { PixelIcon } from '@/components/ui/PixelIcon';
 import { widgetFrameClassName } from '@/components/widgets';
 import type { FirstSteps } from '@/lib/domain/users/first-steps';
+import { hostOf } from '@/components/features/rings/site-shared';
 
 interface FirstStepsChecklistProps {
   username: string;
@@ -98,6 +99,24 @@ export default function FirstStepsChecklist({ username, steps, foundersNote }: F
           </li>
         ))}
       </ul>
+
+      {steps.ownSite?.state === 'none' && (
+        <p className="mt-3 mb-0 text-sm text-nb-ink-mid">
+          Already have a site on Neocities or somewhere?{' '}
+          <Link href="/build/bring-your-site" className="font-semibold text-nb-ink">
+            Bring it with you
+          </Link>
+        </p>
+      )}
+      {/* Added but not proved: they left to edit their site, so lead them back */}
+      {steps.ownSite?.state === 'waiting' && (
+        <p className="mt-3 mb-0 text-sm text-nb-ink-mid">
+          You added {hostOf(steps.ownSite.url)}.{' '}
+          <Link href="/build/bring-your-site" className="font-semibold text-nb-ink">
+            Finish bringing it here
+          </Link>
+        </p>
+      )}
 
       {allDone && (
         <div className="mt-3 flex items-center justify-between gap-2 text-sm text-nb-ink">

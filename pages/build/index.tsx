@@ -45,7 +45,8 @@ export default function BuildHub({ siteConfig, username }: BuildHubProps) {
             <RetroCard title="Write your own HTML page">
               <p className="mt-0 text-nb-ink">
                 The whole page is HTML you write, the way it was on Neocities, plus tags for your guestbook, friends and
-                the rest. The lessons start from nothing.
+                the rest. The lessons start from nothing. Got a page on Neocities already?{' '}
+                <Link href="/build/bring-your-site" className="underline text-thread-pine">Bring it with you</Link>.
               </p>
               <div className="flex flex-wrap gap-3">
                 <ButtonLink href={username ? `/resident/${username}/template-editor` : '/settings?tab=appearance'}>

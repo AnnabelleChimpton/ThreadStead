@@ -20,6 +20,20 @@ export interface FirstSteps {
    * street, which left a newcomer at Pine Street #1 (signup audit #8).
    */
   neighbor?: string | null;
+  /**
+   * Their site elsewhere (Settings → Your sites), for the line under the list
+   * that leads to /build/bring-your-site: 'none' offers it, 'waiting' (added,
+   * not proved yet) leads back to finish, 'proved' drops the line. Not a step.
+   */
+  ownSite?: { state: 'none' } | { state: 'waiting' | 'proved'; url: string };
+}
+
+/** A proved site wins over one still waiting; removed ones don't count */
+export function ownSiteOf(sites: Array<{ url: string; state: string }>): NonNullable<FirstSteps['ownSite']> {
+  const proved = sites.find((s) => s.state === 'verified' || s.state === 'resting');
+  if (proved) return { state: 'proved', url: proved.url };
+  const waiting = sites.find((s) => s.state === 'pending');
+  return waiting ? { state: 'waiting', url: waiting.url } : { state: 'none' };
 }
 
 /** The username of the resident who posted most recently, other than this one */
@@ -60,7 +74,7 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
   const ageDays = (now.getTime() - user.createdAt.getTime()) / 86_400_000;
   if (ageDays > FIRST_STEPS_MAX_AGE_DAYS) return null;
 
-  const [config, decoration, post, signed, profile, pageSave, neighbor] = await Promise.all([
+  const [config, decoration, post, signed, profile, pageSave, neighbor, sites] = await Promise.all([
     db.userHomeConfig.findUnique({
       where: { userId },
       select: { createdAt: true, updatedAt: true, terrain: true },
@@ -77,6 +91,8 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
       select: { id: true },
     }),
     recentNeighbor(userId).catch(() => null),
+    // At most MAX_SITES (3) rows
+    db.externalSite.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, select: { url: true, state: true } }),
   ]);
 
   return {
@@ -86,5 +102,6 @@ export async function getFirstSteps(userId: string, now: Date = new Date()): Pro
     guestbook: !!signed,
     page: !!pageSave || layoutOf(profile?.templateMode) === 'html' || profile?.widgetSlot != null,
     neighbor,
+    ownSite: ownSiteOf(sites),
   };
 }
