@@ -22,7 +22,8 @@ export const MIN_KEY_LENGTH = 32
 
 export interface SealReport {
   alreadyEncrypted: number
-  sealed: number
+  /** Rows written, or that would be on a dry run */
+  changed: number
   /** Rows whose secret doesn't make their public key: left as they are, for a person to look at */
   mismatched: string[]
   /** Changed while this ran, or failed: left as they are */
@@ -35,7 +36,7 @@ export async function sealUserKeys(db: Pick<PrismaClient, 'userDID'>, { apply }:
     throw new Error(`THREADSTEAD_KEY_ENCRYPTION_KEY has to be set, ${MIN_KEY_LENGTH} characters at least (openssl rand -base64 32).`)
   }
 
-  const report: SealReport = { alreadyEncrypted: 0, sealed: 0, mismatched: [], skipped: [] }
+  const report: SealReport = { alreadyEncrypted: 0, changed: 0, mismatched: [], skipped: [] }
   const rows = await db.userDID.findMany({ select: { userId: true, publicKeyMultibase: true, secretKeyEncrypted: true } })
 
   // Anything encrypted before has to open with this key, checked before
@@ -62,18 +63,57 @@ export async function sealUserKeys(db: Pick<PrismaClient, 'userDID'>, { apply }:
       const sealed = sealUserSecretKey(secret)
       if (decryptUserSecretKey(sealed) !== secret) throw new Error('sealed key did not decrypt to the same secret')
       if (!apply) {
-        report.sealed++
+        report.changed++
         continue
       }
       const { count } = await db.userDID.updateMany({
         where: { userId: row.userId, secretKeyEncrypted: row.secretKeyEncrypted },
         data: { secretKeyEncrypted: sealed },
       })
-      if (count === 1) report.sealed++
+      if (count === 1) report.changed++
       else report.skipped.push(row.userId)
     } catch {
       report.skipped.push(row.userId)
     }
+  }
+  return report
+}
+
+/**
+ * The undo: puts encrypted keys back as "plain:", with the key that sealed
+ * them. For the case where something looks wrong after --apply; the same
+ * checks apply (the secret makes the public key, the row hasn't changed).
+ */
+export async function unsealUserKeys(db: Pick<PrismaClient, 'userDID'>, { apply }: { apply: boolean }): Promise<SealReport> {
+  const key = process.env.THREADSTEAD_KEY_ENCRYPTION_KEY ?? ''
+  if (!key) throw new Error('THREADSTEAD_KEY_ENCRYPTION_KEY has to be set to the key that encrypted them.')
+
+  const report: SealReport = { alreadyEncrypted: 0, changed: 0, mismatched: [], skipped: [] }
+  const rows = await db.userDID.findMany({
+    where: { secretKeyEncrypted: { startsWith: 'enc:v1:' } },
+    select: { userId: true, publicKeyMultibase: true, secretKeyEncrypted: true },
+  })
+  for (const row of rows) {
+    let secret: string
+    try {
+      secret = decryptUserSecretKey(row.secretKeyEncrypted)
+    } catch {
+      throw new Error(`${row.userId}'s key doesn't open with THREADSTEAD_KEY_ENCRYPTION_KEY. Nothing more was changed.`)
+    }
+    if (toBase64Url(await ed.getPublicKeyAsync(fromBase64Url(secret))) !== row.publicKeyMultibase) {
+      report.mismatched.push(row.userId)
+      continue
+    }
+    if (!apply) {
+      report.changed++
+      continue
+    }
+    const { count } = await db.userDID.updateMany({
+      where: { userId: row.userId, secretKeyEncrypted: row.secretKeyEncrypted },
+      data: { secretKeyEncrypted: `plain:${secret}` },
+    })
+    if (count === 1) report.changed++
+    else report.skipped.push(row.userId)
   }
   return report
 }

@@ -146,7 +146,7 @@ export async function signMessageAsServer(message: string): Promise<string> {
 
 /**
  * Convert a persisted UserDID DB row into the in-memory UserDIDMapping shape.
- * Decrypts the secret key using the same encryption util the file store used.
+ * The secret key is decrypted when it is first read (only signing reads it).
  */
 function rowToMapping(row: {
   userId: string;
@@ -156,16 +156,24 @@ function rowToMapping(row: {
   secretKeyEncrypted: string;
   createdAt: Date;
 }): UserDIDMapping {
-  return {
+  const mapping = {
     userId: row.userId,
     did: row.did,
     userHash: row.userHash,
     // NOTE: publicKeyMultibase column stores the base64url public key (historical
     // field naming); callers convert to multibase on demand via publicKeyToMultibase.
     publicKey: row.publicKeyMultibase,
-    secretKey: decryptUserSecretKey(row.secretKeyEncrypted),
     created: row.createdAt.toISOString(),
-  };
+  } as UserDIDMapping;
+  // Decrypted only when something signs with it (the Ring Hub client). The DID
+  // document, the ring directory and badges read the DID and public key, and
+  // keep working even if THREADSTEAD_KEY_ENCRYPTION_KEY goes missing.
+  let secretKey: string | undefined;
+  Object.defineProperty(mapping, 'secretKey', {
+    enumerable: true,
+    get: () => (secretKey ??= decryptUserSecretKey(row.secretKeyEncrypted)),
+  });
+  return mapping;
 }
 
 /**

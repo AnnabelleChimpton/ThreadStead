@@ -20,8 +20,8 @@ jest.mock('@noble/ed25519', () => {
   }
 })
 
-import { sealUserKeys } from '@/lib/api/did/seal-user-keys'
-import { decryptUserSecretKey } from '@/lib/api/did/server-did-client'
+import { sealUserKeys, unsealUserKeys } from '@/lib/api/did/seal-user-keys'
+import { decryptUserSecretKey, getUserDID, getUserDIDMappingByHash, generateUserDIDDocument } from '@/lib/api/did/server-did-client'
 
 const stamp = Date.now()
 const KEY = 'a'.repeat(44)
@@ -77,14 +77,14 @@ test('without a strong key it refuses, and writes nothing', async () => {
 test('a dry run counts and writes nothing', async () => {
   process.env.THREADSTEAD_KEY_ENCRYPTION_KEY = KEY
   const report = await sealUserKeys(db, { apply: false })
-  expect(report).toEqual({ alreadyEncrypted: 0, sealed: 3, mismatched: [mismatchedId], skipped: [] })
+  expect(report).toEqual({ alreadyEncrypted: 0, changed: 3, mismatched: [mismatchedId], skipped: [] })
   for (const person of people) expect((await rowOf(person.userId))?.secretKeyEncrypted).toBe(person.stored)
 })
 
 test('applied: each key is encrypted and opens to the same secret; a key that doesn\'t match its public key is left', async () => {
   process.env.THREADSTEAD_KEY_ENCRYPTION_KEY = KEY
   const report = await sealUserKeys(db, { apply: true })
-  expect(report).toEqual({ alreadyEncrypted: 0, sealed: 3, mismatched: [mismatchedId], skipped: [] })
+  expect(report).toEqual({ alreadyEncrypted: 0, changed: 3, mismatched: [mismatchedId], skipped: [] })
   for (const person of people) {
     const stored = (await rowOf(person.userId))!.secretKeyEncrypted
     expect(stored.startsWith('enc:v1:')).toBe(true)
@@ -98,8 +98,18 @@ test('running it again changes nothing', async () => {
   process.env.THREADSTEAD_KEY_ENCRYPTION_KEY = KEY
   const before = await Promise.all(people.map((p) => rowOf(p.userId)))
   const report = await sealUserKeys(db, { apply: true })
-  expect(report).toEqual({ alreadyEncrypted: 3, sealed: 0, mismatched: [mismatchedId], skipped: [] })
+  expect(report).toEqual({ alreadyEncrypted: 3, changed: 0, mismatched: [mismatchedId], skipped: [] })
   expect(await Promise.all(people.map((p) => rowOf(p.userId)))).toEqual(before)
+})
+
+test('without the key, the DID, public key and DID document still read; only signing needs it', async () => {
+  const [person] = people
+  const row = await db.userDID.findUnique({ where: { userId: person.userId } })
+  delete process.env.THREADSTEAD_KEY_ENCRYPTION_KEY
+  expect(await getUserDID(person.userId)).toBe(row!.did)
+  const mapping = (await getUserDIDMappingByHash(row!.userHash))!
+  expect((await generateUserDIDDocument(mapping)).id).toBe(row!.did)
+  expect(() => mapping.secretKey).toThrow(/No encryption key/)
 })
 
 test('with a different key than the one already used, it stops before writing anything', async () => {
@@ -107,4 +117,12 @@ test('with a different key than the one already used, it stops before writing an
   process.env.THREADSTEAD_KEY_ENCRYPTION_KEY = 'b'.repeat(44)
   await expect(sealUserKeys(db, { apply: true })).rejects.toThrow(/doesn't open it/)
   expect((await rowOf(late.userId))?.secretKeyEncrypted).toBe(late.stored)
+})
+
+test('the undo puts every encrypted key back as plaintext, with the same secret', async () => {
+  process.env.THREADSTEAD_KEY_ENCRYPTION_KEY = KEY
+  expect((await unsealUserKeys(db, { apply: false })).changed).toBe(3)
+  const report = await unsealUserKeys(db, { apply: true })
+  expect(report).toEqual({ alreadyEncrypted: 0, changed: 3, mismatched: [], skipped: [] })
+  for (const person of people) expect((await rowOf(person.userId))?.secretKeyEncrypted).toBe(`plain:${person.secret}`)
 })
