@@ -634,10 +634,7 @@ const PLAIN_PREFIX = 'plain:';
  * Encrypt a user's secret key (base64url) for at-rest storage in the DB.
  */
 export function encryptUserSecretKey(secretKeyBase64Url: string): string {
-  if (shouldEncrypt()) {
-    const blob = encryptData(secretKeyBase64Url);
-    return ENC_PREFIX + Buffer.from(JSON.stringify(blob), 'utf8').toString('base64');
-  }
+  if (shouldEncrypt()) return sealUserSecretKey(secretKeyBase64Url);
 
   if (!getEncryptionKey()) {
     console.warn(
@@ -646,6 +643,16 @@ export function encryptUserSecretKey(secretKeyBase64Url: string): string {
     );
   }
   return PLAIN_PREFIX + secretKeyBase64Url;
+}
+
+/**
+ * Encrypt a user's secret key whatever NODE_ENV is; throws without
+ * THREADSTEAD_KEY_ENCRYPTION_KEY. For scripts/encrypt-user-did-keys.ts,
+ * which seals the rows written in plaintext before the key was set.
+ */
+export function sealUserSecretKey(secretKeyBase64Url: string): string {
+  const blob = encryptData(secretKeyBase64Url);
+  return ENC_PREFIX + Buffer.from(JSON.stringify(blob), 'utf8').toString('base64');
 }
 
 /**
