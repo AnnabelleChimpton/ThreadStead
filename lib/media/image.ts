@@ -5,7 +5,7 @@
  * they were consolidated — change one and newly uploaded files look different
  * from everything already stored.
  */
-import sharp from 'sharp';
+import sharp, { type Color, type Metadata, type Sharp } from 'sharp';
 
 export interface ImageSizes {
   thumbnail: Buffer;
@@ -41,7 +41,7 @@ export async function avatarFormatFor(input: Buffer): Promise<AvatarFormat> {
 }
 
 export async function renderAvatarSizes(input: Buffer, format: AvatarFormat = 'jpeg'): Promise<ImageSizes> {
-  const encode = (img: sharp.Sharp, jpegQuality: number) =>
+  const encode = (img: Sharp, jpegQuality: number) =>
     format === 'png' ? img.png({ compressionLevel: 9 }) : img.jpeg({ quality: jpegQuality });
   const [thumbnail, medium, full] = await Promise.all([
     encode(
@@ -125,7 +125,7 @@ export async function renderMediaSizesKeepingFormat(input: Buffer, format: 'png'
   const frames = meta.pages ?? 1;
   const animatedWebp = format === 'webp' && frames > 1 && width * height * frames <= GIF_ANIMATE_PIXEL_BUDGET;
   const read = () => sharp(input, { animated: animatedWebp }).rotate();
-  const encode = (img: sharp.Sharp) =>
+  const encode = (img: Sharp) =>
     format === 'png' ? img.png({ compressionLevel: 9 }) : img.webp({ quality: 90, alphaQuality: 100 });
   const smallArt = width < 150 || height < 150;
   const fitInside = (max: number) => read().resize(max, max, { fit: 'inside', withoutEnlargement: true });
@@ -198,7 +198,7 @@ export interface GifSizes extends ImageSizes {
 
 export async function renderGifSizes(input: Buffer): Promise<GifSizes> {
   const notAGif = () => new ImageValidationError("That doesn't look like a GIF.");
-  let meta: sharp.Metadata;
+  let meta: Metadata;
   try {
     meta = await sharp(input, { animated: true }).metadata();
   } catch {
@@ -243,7 +243,7 @@ export function containPng(
   input: Buffer,
   width: number,
   height: number,
-  { quality, background = TRANSPARENT_WHITE }: { quality: number; background?: sharp.Color }
+  { quality, background = TRANSPARENT_WHITE }: { quality: number; background?: Color }
 ): Promise<Buffer> {
   return sharp(input).resize(width, height, { fit: 'contain', background }).png({ quality }).toBuffer();
 }
