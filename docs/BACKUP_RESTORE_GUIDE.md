@@ -18,8 +18,11 @@ Your Threadstead application has automated daily backups:
 - **Location:** NAS device at `NAS_IP_ADDRESS` (via Tailscale)
 - **Path:** `/home/BACKUP_USER/backups/threadstead/`
 - **Retention:** 30 days (automatic cleanup)
-- **Encryption:** AES-256-CBC
-- **Contents:** PostgreSQL database, system configs, crontab
+- **Local copies:** the last 14 days, encrypted, in `/var/backups/threadstead/` on the production server (root only), so a night the NAS is down still leaves a backup
+- **Encryption:** AES-256-CBC, key derived with PBKDF2 (600,000 iterations, SHA-256)
+- **Contents:** PostgreSQL database, the app `.env`, crontab
+
+**Archives made before 2026-10-27** were encrypted without PBKDF2. To decrypt one of those, leave `-pbkdf2 -iter 600000` out of the commands below.
 
 ---
 
@@ -27,6 +30,7 @@ Your Threadstead application has automated daily backups:
 
 ### Automated Backups
 - **Script:** `/opt/backup/threadstead-backup.sh`
+- **Settings:** `/opt/backup/threadstead-backup.conf` (root, mode 600: database name/user/password, NAS path, app `.env` path)
 - **Cron Job:** `0 2 * * * /opt/backup/threadstead-backup.sh >> /var/log/threadstead-backup.log 2>&1`
 - **Logs:** `/var/log/threadstead-backup.log`
 - **Encryption Key:** `/opt/backup/.backup-encryption-key`
@@ -40,12 +44,19 @@ A copy of the script is also available in this repository at: `scripts/threadste
 **Key features:**
 - PostgreSQL database dump (custom format)
 - System configuration backup (.env, crontab)
-- Compression (tar.gz)
-- AES-256-CBC encryption
-- Transfer to NAS via SSH/cat (works around UGreen NAS SCP restrictions)
-- Size verification after transfer
-- Automatic cleanup of old backups (30-day retention)
-- Automatic cleanup of temporary files
+- Compressed and encrypted in one pipe (AES-256-CBC, PBKDF2), so no plaintext archive is written
+- Each archive is decrypted and read end to end before it's kept
+- Plaintext only exists in a root-only work directory that is removed however the script exits
+- Encrypted copy kept locally for 14 days; archives the NAS missed are sent the next night it answers
+- Transfer to NAS via SSH/cat (works around UGreen NAS SCP restrictions), written as `.partial`, size-checked, then renamed
+- Automatic cleanup of old backups (30 days on the NAS, 14 days locally)
+- A failed night logs a `BACKUP FAILED:` line (also in `journalctl -t threadstead-backup`) and exits non-zero; a good night ends with `BACKUP OK:`
+
+**Check last night's result:**
+```bash
+sudo tail -3 /var/log/threadstead-backup.log
+sudo ls -la /var/backups/threadstead/
+```
 
 ### Manual Backup
 To run a backup manually:
@@ -125,7 +136,7 @@ cd ~/backup-restore
 ENCRYPTION_KEY=$(cat encryption-key.txt)
 
 # Decrypt using the key as a password string (NOT file reference)
-openssl enc -aes-256-cbc -d \
+openssl enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 \
   -in backup.tar.gz.enc \
   -out backup.tar.gz \
   -pass pass:$ENCRYPTION_KEY
@@ -234,7 +245,7 @@ ssh BACKUP_USER@NAS_IP_ADDRESS "cat /home/BACKUP_USER/backups/threadstead/thread
 $encryptionKey = Get-Content C:\backup-restore\encryption-key.txt
 
 # Decrypt using the key as a password string (adjust OpenSSL path if different)
-& "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" enc -aes-256-cbc -d `
+& "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 `
   -in C:\backup-restore\backup.tar.gz.enc `
   -out C:\backup-restore\backup.tar.gz `
   -pass pass:$encryptionKey
@@ -352,7 +363,7 @@ sudo bash -c 'ssh nas-backup "cat /home/BACKUP_USER/backups/threadstead/threadst
 
 ```bash
 # Decrypt
-sudo openssl enc -aes-256-cbc -d \
+sudo openssl enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 \
   -in /tmp/restore.tar.gz.enc \
   -out /tmp/restore.tar.gz \
   -pass file:/opt/backup/.backup-encryption-key
@@ -495,17 +506,17 @@ chmod 400 encryption-key.txt
 ```bash
 # CORRECT - Use pass:
 ENCRYPTION_KEY=$(cat encryption-key.txt)
-openssl enc -aes-256-cbc -d -in backup.tar.gz.enc -out backup.tar.gz -pass pass:$ENCRYPTION_KEY
+openssl enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 -in backup.tar.gz.enc -out backup.tar.gz -pass pass:$ENCRYPTION_KEY
 
 # WRONG - Don't use file:
-openssl enc -aes-256-cbc -d -in backup.tar.gz.enc -out backup.tar.gz -pass file:encryption-key.txt
+openssl enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 -in backup.tar.gz.enc -out backup.tar.gz -pass file:encryption-key.txt
 ```
 
 **Windows:**
 ```powershell
 # CORRECT
 $key = Get-Content encryption-key.txt
-& "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" enc -aes-256-cbc -d -in backup.tar.gz.enc -out backup.tar.gz -pass pass:$key
+& "C:\Program Files\OpenSSL-Win64\bin\openssl.exe" enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 -in backup.tar.gz.enc -out backup.tar.gz -pass pass:$key
 ```
 
 **Verify decryption worked:**
@@ -619,7 +630,7 @@ ssh BACKUP_USER@NAS_IP_ADDRESS "cat $LATEST" > ~/backup-restore/latest-backup.ta
 ```bash
 # Read key into variable and use -pass pass: (NOT -pass file:)
 ENCRYPTION_KEY=$(cat encryption-key.txt)
-openssl enc -aes-256-cbc -d -in backup.tar.gz.enc -out backup.tar.gz -pass pass:$ENCRYPTION_KEY
+openssl enc -aes-256-cbc -d -pbkdf2 -iter 600000 -md sha256 -in backup.tar.gz.enc -out backup.tar.gz -pass pass:$ENCRYPTION_KEY
 
 # Verify it worked (should show "1f 8b")
 xxd backup.tar.gz | head -n 1
