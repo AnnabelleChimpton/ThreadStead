@@ -1,12 +1,12 @@
 /**
  * robots.txt for the Indie Index bot (RFC 9309). Pure, no I/O.
  *
- * The group naming our product token (ThreadsteadBot) wins over `*`; rules
+ * The group naming one of our product tokens (BOT_TOKENS) wins over `*`; rules
  * from every group with that name are merged. The longest matching rule wins
  * and Allow wins a tie. `*` matches anything and `$` anchors the end.
  */
 
-export const BOT_TOKEN = 'threadsteadbot'
+import { BOT_TOKENS } from './public'
 
 interface Rule {
   allow: boolean
@@ -40,7 +40,7 @@ function normalisePath(path: string): string {
   }
 }
 
-export function parseRobots(text: string, token: string = BOT_TOKEN): Robots {
+export function parseRobots(text: string, tokens: readonly string[] = BOT_TOKENS): Robots {
   const groups: Array<{ agents: string[]; rules: Rule[] }> = []
   let current: { agents: string[]; rules: Rule[] } | null = null
   let lastWasAgent = false
@@ -69,7 +69,7 @@ export function parseRobots(text: string, token: string = BOT_TOKEN): Robots {
     current.rules.push({ allow: field === 'allow', pattern: toPattern(path), length: path.length })
   }
 
-  const named = groups.filter((g) => g.agents.some((a) => a.replace(/\/.*$/, '').trim() === token))
+  const named = groups.filter((g) => g.agents.some((a) => tokens.includes(a.replace(/\/.*$/, '').trim())))
   const chosen = named.length > 0 ? named : groups.filter((g) => g.agents.includes('*'))
   const rules = chosen.flatMap((g) => g.rules)
   if (rules.length === 0) return ALLOW_ALL

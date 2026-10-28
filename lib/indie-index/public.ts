@@ -6,9 +6,16 @@
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
 
-export const BOT_NAME = 'ThreadsteadBot/2.0'
+export const BOT_NAME = 'HomePageAgainBot/2.0'
 
-/** `ThreadsteadBot/2.0 (+https://homepageagain.com/indie/about)` */
+/**
+ * The names robots.txt, robots meta tags and X-Robots-Tag may address the bot
+ * by, lowercase. It was ThreadsteadBot until 2026-10: rules written for that
+ * name still count.
+ */
+export const BOT_TOKENS: readonly string[] = ['homepageagainbot', 'threadsteadbot']
+
+/** `HomePageAgainBot/2.0 (+https://homepageagain.com/indie/about)` */
 export function botUserAgent(baseUrl: string): string {
   return `${BOT_NAME} (+${baseUrl.replace(/\/+$/, '')}/indie/about)`
 }

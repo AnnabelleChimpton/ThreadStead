@@ -39,7 +39,7 @@ export default function SearchFAQ({ siteConfig }: FAQProps) {
       question: 'What does the bot do?',
       answer: (
         <>
-          Once a night it reads the feeds of the sites in the index, so search can find their recent posts, and about once a week it looks at each front page. It goes slowly, follows robots.txt and calls itself ThreadsteadBot. The <Link href="/indie/about" className={link}>about page</Link> has the details, and how to keep a site out.
+          Once a night it reads the feeds of the sites in the index, so search can find their recent posts, and about once a week it looks at each front page. It goes slowly, follows robots.txt and calls itself HomePageAgainBot. The <Link href="/indie/about" className={link}>about page</Link> has the details, and how to keep a site out.
         </>
       )
     },

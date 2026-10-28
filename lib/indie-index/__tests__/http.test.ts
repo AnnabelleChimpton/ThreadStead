@@ -23,7 +23,7 @@ describe('decodeBody', () => {
 
 describe('botUserAgent', () => {
   it('names the bot and its about page', () => {
-    expect(botUserAgent('https://homepageagain.com/')).toBe('ThreadsteadBot/2.0 (+https://homepageagain.com/indie/about)')
+    expect(botUserAgent('https://homepageagain.com/')).toBe('HomePageAgainBot/2.0 (+https://homepageagain.com/indie/about)')
   })
 })
 

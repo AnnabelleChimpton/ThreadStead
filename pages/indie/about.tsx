@@ -15,7 +15,7 @@ const link = 'underline underline-offset-2'
 export default function IndieAboutPage() {
   return (
     <Layout>
-      <PageMeta title="About the Indie Index" description="What ThreadsteadBot fetches, how often, and how to keep your site out of the Indie Index." path="/indie/about" />
+      <PageMeta title="About the Indie Index" description="What HomePageAgainBot fetches, how often, and how to keep your site out of the Indie Index." path="/indie/about" />
 
       <article className="thread-module p-4 sm:p-6 max-w-3xl mx-auto space-y-4 text-nb-ink">
         <h1 className="thread-headline text-2xl sm:text-3xl font-bold">About the Indie Index</h1>
@@ -45,8 +45,9 @@ export default function IndieAboutPage() {
 
         <h2 className="thread-headline text-xl font-bold pt-2">Keeping your site out</h2>
         <p>Either of these works, and you don&apos;t need an account. Add this to your robots.txt:</p>
-        <pre className="bg-nb-surface border border-nb-ink-mid/40 rounded-md p-3 text-sm overflow-x-auto">{`User-agent: ThreadsteadBot
+        <pre className="bg-nb-surface border border-nb-ink-mid/40 rounded-md p-3 text-sm overflow-x-auto">{`User-agent: HomePageAgainBot
 Disallow: /`}</pre>
+        <p>It used to be called ThreadsteadBot, and rules for that name still work.</p>
         <p>or put this in your front page&apos;s &lt;head&gt;:</p>
         <pre className="bg-nb-surface border border-nb-ink-mid/40 rounded-md p-3 text-sm overflow-x-auto">{`<meta name="robots" content="noindex">`}</pre>
         <p>

@@ -6,6 +6,7 @@
  * needs after dropping comments, scripts and styles.
  */
 import { decodeEntities, toPlainText } from '@/lib/search/excerpt'
+import { BOT_TOKENS } from './public'
 
 export interface PageLink {
   /** Absolute http(s) URL. */
@@ -138,7 +139,7 @@ export function extractHead(html: string, base: string): HeadInfo {
     const attrs = attributesOf(tag)
     if (tag[1].toLowerCase() === 'm') {
       const name = (attrs.name ?? attrs.property ?? '').toLowerCase()
-      if ((name === 'robots' || name === 'threadsteadbot') && /\b(noindex|none)\b/i.test(attrs.content ?? '')) noindex = true
+      if ((name === 'robots' || BOT_TOKENS.includes(name)) && /\b(noindex|none)\b/i.test(attrs.content ?? '')) noindex = true
       if (name && !(name in meta)) meta[name] = attrs.content ?? ''
       continue
     }
@@ -164,7 +165,7 @@ const VALUED_DIRECTIVE = /^(max-snippet|max-image-preview|max-video-preview|unav
 
 /**
  * True when an X-Robots-Tag header says noindex (or none) for everyone or
- * for ThreadsteadBot. "googlebot: noindex" doesn't count.
+ * for our bot (BOT_TOKENS). "googlebot: noindex" doesn't count.
  */
 export function headerSaysNoindex(value: string | null | undefined): boolean {
   if (!value) return false
@@ -176,7 +177,7 @@ export function headerSaysNoindex(value: string | null | undefined): boolean {
       agent = prefixed[1].toLowerCase()
       part = prefixed[2].trim()
     }
-    if ((agent === null || agent === 'threadsteadbot') && /^(noindex|none)$/i.test(part)) return true
+    if ((agent === null || BOT_TOKENS.includes(agent)) && /^(noindex|none)$/i.test(part)) return true
   }
   return false
 }

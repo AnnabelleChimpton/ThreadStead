@@ -109,6 +109,7 @@ describe('extractHead', () => {
   it.each([
     ['<meta name="robots" content="noindex, follow">', true],
     ['<meta name="ROBOTS" content="none">', true],
+    ['<meta name="HomePageAgainBot" content="noindex">', true],
     ['<meta name="threadsteadbot" content="noindex">', true],
     ['<meta name="googlebot" content="noindex">', false],
     ['<meta name="robots" content="index, follow">', false],
@@ -120,6 +121,7 @@ describe('extractHead', () => {
     ['noindex', true],
     ['noindex, nofollow', true],
     ['none', true],
+    ['homepageagainbot: noindex', true],
     ['threadsteadbot: noindex', true],
     ['googlebot: noindex', false],
     ['max-snippet: 20, noindex', true],
@@ -151,6 +153,11 @@ describe('parseRobots', () => {
     expect(parseRobots(text).allows('/feed.xml')).toBe(true)
     const blocked = `User-agent: *\nAllow: /\n\nUser-agent: threadsteadbot\nDisallow: /`
     expect(parseRobots(blocked).allows('/')).toBe(false)
+  })
+
+  it('obeys rules for the old name (ThreadsteadBot) as well as the new one', () => {
+    expect(parseRobots('User-agent: *\nAllow: /\n\nUser-agent: HomePageAgainBot\nDisallow: /').allows('/')).toBe(false)
+    expect(parseRobots('User-agent: *\nAllow: /\n\nUser-agent: ThreadsteadBot\nDisallow: /').allows('/')).toBe(false)
   })
 
   it("doesn't treat another bot's group as ours because its name is a substring", () => {
