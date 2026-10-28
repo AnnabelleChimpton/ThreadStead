@@ -245,7 +245,7 @@ export default function PixelHomePage({
   return (
     <div className={className}>
       <div className="max-w-6xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
-        <h1 className="thread-headline text-2xl sm:text-3xl font-bold mb-3">
+        <h1 className="thread-headline text-2xl sm:text-3xl font-bold mb-3 text-center">
           {isOwner ? 'Your house' : `${nameToShow}'s house`}
         </h1>
 
@@ -259,6 +259,7 @@ export default function PixelHomePage({
           atmosphere={atmosphere}
           terrain={terrain}
           pixelPerfect
+          centered
           door={{ href: insideHref, label: isOwner ? 'Go inside to your page' : `Go inside to ${nameToShow}'s page` }}
           onMailboxClick={handleMailboxClick}
           onNoteClick={handleNoteClick}
@@ -272,7 +273,7 @@ export default function PixelHomePage({
             id="ts-decoration-note"
             aria-live="polite"
             aria-label={isOwner ? 'Your note' : `${nameToShow}'s note`}
-            className="mt-3 max-w-xl border border-thread-sage/60 bg-thread-paper px-4 py-3"
+            className="mt-3 mx-auto max-w-xl border border-thread-sage/60 bg-thread-paper px-4 py-3"
           >
             <div className="text-nb-ink leading-relaxed whitespace-pre-line break-words">
               <CommentMarkupWithEmojis text={openNote.text} />
@@ -283,8 +284,9 @@ export default function PixelHomePage({
           </section>
         )}
 
-        {/* What you can do here, as one plain row under the art */}
-        <nav aria-label="This house" className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm sm:text-base">
+        {/* What you can do here, as one plain row under the art. Everything down
+            to the neighbors sits on the scene's centre line, as the house does */}
+        <nav aria-label="This house" className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm sm:text-base">
           <Link href={insideHref} onClick={handleGoInside} className="font-semibold">Go inside</Link>
           <span aria-hidden="true">·</span>
           <button type="button" onClick={handleMailboxClick} className="ts-bare ts-text-button">
@@ -312,7 +314,7 @@ export default function PixelHomePage({
 
         {/* Only what the owner wrote: no stand-in title or description */}
         {(houseTitle || houseDescription) && (
-          <div className="mt-6 max-w-2xl">
+          <div className="mt-6 mx-auto max-w-2xl text-center">
             {houseTitle && <h2 className="font-headline text-xl font-semibold text-nb-ink mb-1">{houseTitle}</h2>}
             {houseDescription && <p className="text-nb-ink-mid leading-relaxed whitespace-pre-line">{houseDescription}</p>}
           </div>
@@ -320,7 +322,7 @@ export default function PixelHomePage({
 
         {/* Their real ThreadRing badges, at full 88×31 */}
         {badges.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-2" aria-label="ThreadRing badges">
+          <div className="mt-6 flex flex-wrap justify-center gap-2" aria-label="ThreadRing badges">
             {badges.slice(0, 12).map((badge) => (
               <Link
                 key={badge.id}
@@ -341,7 +343,7 @@ export default function PixelHomePage({
           </div>
         )}
 
-        <div className="mt-4 flex justify-start">
+        <div className="mt-4 flex justify-center">
           <VisitorTrail username={username} recordVisit={!isOwner} />
         </div>
 

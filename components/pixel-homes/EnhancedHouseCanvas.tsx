@@ -51,6 +51,8 @@ interface EnhancedHouseCanvasProps {
    * definite height. Used by the editor, which also allows scales under 1x.
    */
   fitBox?: boolean
+  /** With pixelPerfect: centred in a frame wider than the scene, instead of at its left */
+  centered?: boolean
   /**
    * With pixelPerfect: always this whole-number scale, never measured (admin
    * previews of a sprite at exactly 1x and 2x). The frame crops what doesn't fit.
@@ -442,6 +444,7 @@ export default function EnhancedHouseCanvas({
   pixelPerfect = false,
   fixedScale,
   fitBox = false,
+  centered = false,
   sceneProps,
   door,
   onMailboxClick,
@@ -529,10 +532,13 @@ export default function EnhancedHouseCanvas({
         // Exactly 512k x 352k, nothing inside the box to shave a pixel off
         width: CANVAS_WIDTH * scale,
         height: CANVAS_HEIGHT * scale,
-        // Left-aligned when it fits; when the frame is narrower, a negative
-        // margin centres it, so the house (at the scene's centre) stays in view.
-        // Pure CSS, so it's right before any measuring runs.
-        marginLeft: fitBox ? undefined : `min(0px, calc((100% - ${CANVAS_WIDTH * scale}px) / 2))`,
+        // Left-aligned when it fits (or centred, with centered); when the frame
+        // is narrower, a negative margin centres it, so the house (at the
+        // scene's centre) stays in view. Pure CSS, so it's right before any
+        // measuring runs.
+        marginLeft: fitBox ? undefined : centered
+          ? `calc((100% - ${CANVAS_WIDTH * scale}px) / 2)`
+          : `min(0px, calc((100% - ${CANVAS_WIDTH * scale}px) / 2))`,
         flexShrink: 0,
         imageRendering: 'pixelated',
         background: '#f0f8ff'
