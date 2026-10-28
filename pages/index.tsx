@@ -363,7 +363,6 @@ function PersonalizedHomepage({ siteConfig, user, customLandingPageSlug, ogImage
           )}
           <SearchBox
             size="lg"
-            label="Search ThreadStead"
             className="max-w-3xl mx-auto mb-6 sm:mb-8"
           />
 

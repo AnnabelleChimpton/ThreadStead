@@ -5,6 +5,7 @@ import EnhancedHouseCanvas from '../../components/pixel-homes/EnhancedHouseCanva
 import { HouseTemplate, ColorPalette, HouseCustomizations } from '../../components/pixel-homes/HouseSVG'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import PageMeta from '@/components/ui/layout/PageMeta'
+import { SITE_TITLE } from '@/lib/config/site/constants'
 
 /**
  * Demo Pixel Home Landing Page
@@ -96,7 +97,7 @@ export default function DemoPixelHome() {
                 A Peek at a Pixel Home
               </h1>
               <p className="text-thread-sage text-lg max-w-2xl mx-auto leading-relaxed">
-                This is a sample of what you can build on ThreadStead. Every detail here —
+                This is a sample of what you can build on {SITE_TITLE}. Every detail here —
                 the house style, the colors, even the garden gnome — is up to you.
               </p>
             </div>
@@ -235,7 +236,7 @@ export default function DemoPixelHome() {
                 </h3>
                 <p className="text-thread-sage mb-6 max-w-lg mx-auto">
                   See what other folks have built — there are hundreds of pixel homes
-                  across ThreadStead to wander past.
+                  across {SITE_TITLE} to wander past.
                 </p>
                 <Link
                   href="/neighborhood"

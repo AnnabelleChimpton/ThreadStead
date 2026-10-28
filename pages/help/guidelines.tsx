@@ -19,7 +19,7 @@ export default function CommunityGuidelines() {
           <PageHeader title="Community Guidelines">
             <p className="font-semibold">Welcome to the Neighborhood</p>
             <p>
-              Threadstead is a place to make things, be yourself, and get to know your neighbors.
+              {SITE_TITLE} is a place to make things, be yourself, and get to know your neighbors.
               These guidelines keep it that way for everyone.
             </p>
           </PageHeader>
@@ -180,7 +180,7 @@ export default function CommunityGuidelines() {
               <div className="flex flex-wrap justify-center gap-3">
                 <ButtonLink href="/getting-started" size="sm">Getting Started Guide</ButtonLink>
 
-                <a href="mailto:support@threadstead.com" className={buttonClasses('secondary', 'sm')}>
+                <a href="mailto:support@homepageagain.com" className={buttonClasses('secondary', 'sm')}>
                   Contact Support
                 </a>
               </div>

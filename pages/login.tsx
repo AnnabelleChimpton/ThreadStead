@@ -140,7 +140,7 @@ export default function LoginPage() {
               <div className="text-center mb-8">
                 <h1 className="thread-headline text-3xl font-bold mb-2">Welcome Back!</h1>
                 <p className="text-nb-ink-mid">
-                  Sign in to your ThreadStead account
+                  Sign in to your {SITE_TITLE} account
                 </p>
               </div>
 

@@ -37,8 +37,7 @@ export const PUBLIC_ENV_SPECS = [
     kind: 'string',
     scope: 'public',
     group: 'Site',
-    default: 'Threadstead',
-    description: 'Site name used in the subject and body of login/verification emails.',
+    description: 'Site name used in the subject and body of login/verification emails. Unset, the emails use NEXT_PUBLIC_SITE_TITLE.',
   },
   {
     name: 'NEXT_PUBLIC_SITE_HANDLE_DOMAIN',

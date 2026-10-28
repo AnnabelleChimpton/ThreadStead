@@ -23,6 +23,7 @@ import { csrfFetch } from '@/lib/api/client/csrf-fetch';
 import { useToast } from "@/contexts/ToastContext";
 import { useConfirm } from "@/contexts/ConfirmContext";
 import { leavingDay } from "@/components/features/account/leaving-day";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 
 // Collapsible Section Component
 function CollapsibleSection({
@@ -1320,7 +1321,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.site_name}
                       onChange={(e) => updateConfigField("site_name", e.target.value)}
-                      placeholder="ThreadStead"
+                      placeholder={SITE_TITLE}
                     />
                     <p className="text-xs text-gray-500 mt-1">Main site name in header</p>
                   </div>
@@ -1355,7 +1356,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.welcome_message}
                       onChange={(e) => updateConfigField("welcome_message", e.target.value)}
-                      placeholder="Welcome to ThreadStead"
+                      placeholder={`Welcome to ${SITE_TITLE}`}
                     />
                     <p className="text-xs text-gray-500 mt-1">Main page headline</p>
                   </div>
@@ -1367,7 +1368,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.directory_title}
                       onChange={(e) => updateConfigField("directory_title", e.target.value)}
-                      placeholder="ThreadStead Directory"
+                      placeholder={`${SITE_TITLE} Directory`}
                     />
                     <p className="text-xs text-gray-500 mt-1">User directory page title</p>
                   </div>
@@ -1379,7 +1380,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.footer_text}
                       onChange={(e) => updateConfigField("footer_text", e.target.value)}
-                      placeholder="ThreadStead"
+                      placeholder={SITE_TITLE}
                     />
                     <p className="text-xs text-gray-500 mt-1">Copyright text in footer</p>
                   </div>
@@ -1393,7 +1394,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       rows={2}
                       value={siteConfig.directory_empty_message}
                       onChange={(e) => updateConfigField("directory_empty_message", e.target.value)}
-                      placeholder="No residents have joined ThreadStead yet. Be the first!"
+                      placeholder={`No residents have joined ${SITE_TITLE} yet. Be the first!`}
                     />
                     <p className="text-xs text-gray-500 mt-1">Shown when no users exist</p>
                   </div>
@@ -1405,7 +1406,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       rows={2}
                       value={siteConfig.feed_empty_message}
                       onChange={(e) => updateConfigField("feed_empty_message", e.target.value)}
-                      placeholder="Be the first to share something on ThreadStead!"
+                      placeholder={`Be the first to share something on ${SITE_TITLE}!`}
                     />
                     <p className="text-xs text-gray-500 mt-1">Shown when feed is empty</p>
                   </div>
@@ -1417,7 +1418,7 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.welcome_dialog_title}
                       onChange={(e) => updateConfigField("welcome_dialog_title", e.target.value)}
-                      placeholder="Welcome to ThreadStead"
+                      placeholder={`Welcome to ${SITE_TITLE}`}
                     />
                     <p className="text-xs text-gray-500 mt-1">Title for first-time user dialog</p>
                   </div>

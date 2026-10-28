@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import HouseSVG, { HouseTemplate, ColorPalette } from './HouseSVG'
 import { PixelIcon } from '@/components/ui/PixelIcon'
+import { SITE_TITLE } from '@/lib/config/site/constants'
 
 interface ThemePickerProps {
   onSelection: (template: HouseTemplate, palette: ColorPalette) => void
@@ -104,7 +105,7 @@ export default function ThemePicker({
           </h3>
           <div className="text-sm text-thread-charcoal space-y-2">
             <p>
-              <strong>Your Pixel Home</strong> is the front door to your ThreadStead presence -
+              <strong>Your Pixel Home</strong> is the front door to your {SITE_TITLE} presence -
               a playful, interactive way for visitors to discover you.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">

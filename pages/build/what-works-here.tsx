@@ -10,6 +10,7 @@ import Layout from "@/components/ui/layout/Layout";
 import RetroCard from "@/components/ui/layout/RetroCard";
 import PageHeader from "@/components/ui/layout/PageHeader";
 import ButtonLink from "@/components/ui/ButtonLink";
+import { SITE_TITLE } from "@/lib/config/site/constants";
 import { getSiteConfig, SiteConfig } from "@/lib/config/site/dynamic";
 import { MAX_CSS_CHARS, MAX_TEMPLATE_CHARS } from "@/lib/templates/limits";
 import PageMeta from "@/components/ui/layout/PageMeta";
@@ -87,7 +88,7 @@ export default function WhatWorksHere({ siteConfig }: WhatWorksHereProps) {
 </Button>
 <p><ShowVar name="likes" /> likes</p>`}</Example>
               <p>
-                Some components show your actual ThreadStead stuff, like <Code>&lt;Guestbook /&gt;</Code>, your blog
+                Some components show your actual {SITE_TITLE} stuff, like <Code>&lt;Guestbook /&gt;</Code>, your blog
                 posts or your friends. The <Link href="/build/templates/components" className="underline">component reference</Link>{" "}
                 has every one of them with an example you can copy.
               </p>

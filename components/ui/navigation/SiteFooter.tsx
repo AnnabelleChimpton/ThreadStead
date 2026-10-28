@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { FOOTER_COLUMNS } from "./siteNav";
+import { SITE_TITLE, SOURCE_CODE_URL } from "@/lib/config/site/constants";
 
 interface SiteFooterProps {
   siteDescription: string;
@@ -39,7 +40,7 @@ export default function SiteFooter({ siteDescription, raised = false }: SiteFoot
             I only use cookies to keep you logged in. No tracking, analytics or marketing.
           </p>
           <p className="footer-copyright text-sm text-thread-sage">
-            © {new Date().getFullYear()} HomePageAgain
+            © {new Date().getFullYear()} {SITE_TITLE} · <a href={SOURCE_CODE_URL}>the code is open source</a>
           </p>
         </div>
       </div>

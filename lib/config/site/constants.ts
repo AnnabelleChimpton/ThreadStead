@@ -5,3 +5,6 @@ export const SITE_HANDLE_DOMAIN = process.env.SITE_HANDLE_DOMAIN || "YourSiteHer
 // Backwards compatibility aliases (used by API endpoints)
 export const SITE_NAME = SITE_HANDLE_DOMAIN;
 export const LOCAL_HOST = SITE_HANDLE_DOMAIN;
+
+// Where the site's code lives (MIT); the footer links here
+export const SOURCE_CODE_URL = "https://github.com/AnnabelleChimpton/ThreadStead";

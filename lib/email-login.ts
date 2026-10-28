@@ -1,4 +1,5 @@
 import { getSiteBaseUrl } from '@/lib/config/site-url';
+import { SITE_TITLE } from '@/lib/config/site/constants';
 import { randomBytes } from 'crypto';
 import { db } from './config/database/connection';
 import { encryptEmail, findUsersByEmail } from './utils/security/email-encryption';
@@ -224,7 +225,7 @@ export async function sendLoginEmail(email: string, users: EmailLoginUser[], tok
     throw new Error('RESEND_FROM_EMAIL environment variable is required');
   }
 
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Threadstead';
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || SITE_TITLE;
 
   let subject: string;
   let htmlContent: string;
@@ -343,7 +344,7 @@ export async function sendVerificationEmail(email: string, userName: string, tok
     throw new Error('RESEND_FROM_EMAIL environment variable is required');
   }
 
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Threadstead';
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || SITE_TITLE;
 
   const subject = `Confirm your email for ${siteName}`;
   const htmlContent = `
@@ -394,7 +395,7 @@ export async function sendLeavingEmail(email: string, userName: string, deletesA
     throw new Error('RESEND_FROM_EMAIL environment variable is required');
   }
 
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Threadstead';
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || SITE_TITLE;
   const settingsUrl = `${getSiteBaseUrl()}/settings?tab=privacy`;
   const day = deletesAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
@@ -430,7 +431,7 @@ export async function sendPasswordResetEmail(email: string, userName: string, to
     throw new Error('RESEND_FROM_EMAIL environment variable is required');
   }
 
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || 'Threadstead';
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || SITE_TITLE;
 
   const subject = `Reset your password for ${siteName}`;
   const htmlContent = `

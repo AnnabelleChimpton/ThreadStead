@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { PixelIcon } from '@/components/ui/PixelIcon'
 import { searchHref, type SearchScope } from '@/lib/search/url-state'
+import { SITE_TITLE } from '@/lib/config/site/constants'
 
 /**
  * The one search input: /search, the homepage and the header all use it.
@@ -75,7 +76,7 @@ export default function SearchBox({
   defaultValue = '',
   scope,
   size = 'md',
-  label = 'Search ThreadStead',
+  label = `Search ${SITE_TITLE}`,
   showLabel = false,
   // Short enough for a phone's search box (signup audit #11)
   placeholder = 'People, rings, posts…',
