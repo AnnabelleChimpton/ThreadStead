@@ -465,7 +465,7 @@ export default function NavBar({ siteConfig, fullWidth = false, advancedTemplate
               ) : (
                 <h1 className="site-title thread-headline text-xl sm:text-2xl font-bold text-thread-pine">{config.site_name}</h1>
               )}
-              <span className="site-tagline thread-label hidden xl:inline">{config.site_tagline}</span>
+              {config.site_tagline && <span className="site-tagline thread-label hidden xl:inline">{config.site_tagline}</span>}
             </Link>
           </div>
 

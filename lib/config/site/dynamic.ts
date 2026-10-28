@@ -27,7 +27,7 @@ export type SiteConfig = {
 // Default site configuration values
 const DEFAULT_CONFIG: SiteConfig = {
   site_name: "ThreadStead",
-  site_tagline: "@ ThreadStead",
+  site_tagline: "",
   user_status_text: "threadstead resident",
   welcome_message: "Welcome to ThreadStead",
   directory_title: "ThreadStead Directory",

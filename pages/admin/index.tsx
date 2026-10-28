@@ -1332,9 +1332,8 @@ export default function AdminPage({ isBetaEnabled }: AdminPageProps) {
                       className="w-full border border-black p-2 bg-white text-sm"
                       value={siteConfig.site_tagline}
                       onChange={(e) => updateConfigField("site_tagline", e.target.value)}
-                      placeholder="@ ThreadStead"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Appears under site name</p>
+                      />
+                    <p className="text-xs text-gray-500 mt-1">A short line under the site name on wide screens. Leave it empty for none.</p>
                   </div>
 
                   <div>

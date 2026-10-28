@@ -7,7 +7,7 @@ import { apiHandler } from "@/lib/api/handler";
 // Default site configuration values
 const DEFAULT_CONFIG = {
   site_name: "ThreadStead",
-  site_tagline: "@ ThreadStead",
+  site_tagline: "",
   user_status_text: "threadstead resident",
   welcome_message: "Welcome to ThreadStead",
   directory_title: "ThreadStead Directory",
