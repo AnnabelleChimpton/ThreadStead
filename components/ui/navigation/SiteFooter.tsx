@@ -39,7 +39,7 @@ export default function SiteFooter({ siteDescription, raised = false }: SiteFoot
             I only use cookies to keep you logged in. No tracking, analytics or marketing.
           </p>
           <p className="footer-copyright text-sm text-thread-sage">
-            © {new Date().getFullYear()} HomePageAgain — powered by ThreadStead Technologies LLC
+            © {new Date().getFullYear()} HomePageAgain
           </p>
         </div>
       </div>
